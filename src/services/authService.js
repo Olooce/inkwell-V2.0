@@ -26,7 +26,7 @@ export const authService = {
 
     async fetchUserInfo() {
         try {
-            const response = await apiClient.get('/auth/user-info/') 
+            const response = await apiClient.get('/auth/userInformation/') 
             
             // Parse and extract initial assessment status correctly
             const userData = {
