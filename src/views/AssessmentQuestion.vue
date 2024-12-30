@@ -1,7 +1,7 @@
 <template>
   <div class="assessment-layout">
     <Navigation :user-name="userName" />
-    
+
     <main class="assessment-content">
       <div v-if="currentQuestion" class="question-container">
         <div class="progress-indicator">
@@ -46,7 +46,7 @@
           </div>
         </template>
 
-        <button 
+        <button
           class="submit-btn"
           @click="submitAnswer"
           :disabled="!userAnswer || loading"
@@ -89,10 +89,11 @@ import { userStore } from '@/stores/userStore'
 
 const router = useRouter()
 const userName = computed(() => {
-  return userStore.state.firstName.value || 
-         userStore.state.email.value?.split('@')[0] || 
+  return userStore.state.firstName.value ||
+         userStore.state.email.value?.split('@')[0] ||
          'Guest'
 })
+
 
 const userAnswer = ref('')
 const loading = ref(false)
@@ -101,7 +102,7 @@ const feedback = ref({ isCorrect: false, message: '' })
 
 const currentQuestion = computed(() => assessmentStore.getCurrentQuestion())
 const progress = computed(() => assessmentStore.getProgress())
-const isLastQuestion = computed(() => 
+const isLastQuestion = computed(() =>
   progress.value.current === progress.value.total
 )
 
@@ -109,9 +110,11 @@ const formatMaskedSentence = (sentence) => {
   return sentence?.replace('[MASK]', '_____') || ''
 }
 
+console.log('Handling completion, navigating to dashboard...');
+
 const submitAnswer = async () => {
   if (!userAnswer.value || loading.value) return
-  
+
   loading.value = true
   try {
     const result = await assessmentStore.submitAnswer(userAnswer.value)
@@ -134,7 +137,7 @@ const submitAnswer = async () => {
 const handleContinue = () => {
   showFeedback.value = false
   userAnswer.value = ''
-  
+
   if (isLastQuestion.value) {
     handleCompletion()
   } else {
@@ -144,12 +147,12 @@ const handleContinue = () => {
 
 const handleCompletion = () => {
   userStore.state.initial_assessment_completed.value = true
-  
+
   // Update stored user data
   const userData = JSON.parse(localStorage.getItem('user-data') || '{}')
   userData.initial_assessment_completed = true
   localStorage.setItem('user-data', JSON.stringify(userData))
-  
+
   // Redirect to dashboard
   router.push('/dashboard')
 }
