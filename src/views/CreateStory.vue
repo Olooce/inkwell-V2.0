@@ -2,13 +2,13 @@
 <template>
   <div class="create-story-layout">
     <Navigation :user-name="userName" />
-    
+
     <main class="create-story-content">
       <div v-if="!storyStarted" class="start-story-section">
         <h1 class="page-title">Start Your Story Adventure!</h1>
         <div class="input-container">
-          <input 
-            v-model="storyTitle" 
+          <input
+            v-model="storyTitle"
             class="title-input"
             placeholder="Enter your story title..."
             @keyup.enter="startStory"
@@ -26,26 +26,26 @@
             {{ currentSentenceCount }} of {{ maxSentences }} sentences
           </div>
           <div class="progress-track">
-            <div 
-              class="progress-fill" 
+            <div
+              class="progress-fill"
               :style="{ width: `${(currentSentenceCount / maxSentences) * 100}%` }"
               ></div>
           </div>
         </div>
-        
+
         <div class="story-input-section">
           <h2 class="input-prompt">{{ inputPrompt }}</h2>
           <div class="input-container">
-            <textarea 
-              v-model="userSentence" 
+            <textarea
+              v-model="userSentence"
               class="sentence-input"
               :placeholder="inputPlaceholder"
               @keydown.enter.prevent="verifySentence"
               :disabled="isLoading"
             ></textarea>
           </div>
-          <button 
-            @click="verifySentence" 
+          <button
+            @click="verifySentence"
             class="verify-button"
             :disabled="!userSentence.trim() || isLoading"
           >
@@ -55,22 +55,39 @@
 
         <!-- Previous Sentences -->
         <div v-if="sentences.length > 0" class="previous-sentences">
-          <div 
-            v-for="sentence in sentences" 
-            :key="sentence.id" 
+          <div
+            v-for="sentence in sentences"
+            :key="sentence.id"
             class="sentence-card"
           >
             <p class="original-text">{{ sentence.original_text }}</p>
             <p class="corrected-text">{{ sentence.corrected_text }}</p>
             <p class="feedback">{{ sentence.feedback }}</p>
-            <img 
-              v-if="sentence.image_url" 
-              :src="sentence.image_url" 
+            <img
+              v-if="sentence.image_url"
+              :src="sentence.image_url"
               :alt="sentence.corrected_text"
               class="sentence-image"
             />
           </div>
         </div>
+
+<!--        &lt;!&ndash; Feedback Popup &ndash;&gt;-->
+<!--        <div v-if="showFeedback" class="feedback-popup">-->
+<!--          <div class="popup-content">-->
+<!--            <h3 class="popup-title">Feedback</h3>-->
+<!--            <p class="feedback-text">{{ feedbackMessage }}</p>-->
+<!--            <p class="correct-sentence">{{ correctedSentence }}</p>-->
+<!--            <div class="popup-buttons">-->
+<!--              <button @click="continueToPicture" class="continue-button">-->
+<!--                Continue-->
+<!--              </button>-->
+<!--              <button v-if="canCompleteStory" @click="completeStory" class="complete-button">-->
+<!--                Complete Story-->
+<!--              </button>-->
+<!--            </div>-->
+<!--          </div>-->
+<!--        </div>-->
 
         <!-- Feedback Popup -->
         <div v-if="showFeedback" class="feedback-popup">
@@ -78,13 +95,14 @@
             <h3 class="popup-title">Feedback</h3>
             <p class="feedback-text">{{ feedbackMessage }}</p>
             <p class="correct-sentence">{{ correctedSentence }}</p>
+            <img
+              v-if="sentences[currentSentenceCount - 1]?.image_url"
+              :src="sentences[currentSentenceCount - 1]?.image_url"
+              alt="Generated Story Visual"
+              class="popup-image"
+            />
             <div class="popup-buttons">
-              <button @click="continueToPicture" class="continue-button">
-                Continue
-              </button>
-              <button v-if="canCompleteStory" @click="completeStory" class="complete-button">
-                Complete Story
-              </button>
+              <button @click="continueToPicture" class="next-button">Next</button>
             </div>
           </div>
         </div>
@@ -95,7 +113,7 @@
             <h2 class="popup-title">WOWWW!</h2>
             <div class="popup-message">
               <p>YOU DID IT! GREAT JOB!</p>
-              <p>Find your comic in the comic section.</p>
+              <p>Find your story in the comic section.</p>
             </div>
             <button @click="goToComics" class="done-button">
               View Comic
@@ -155,7 +173,7 @@ const canCompleteStory = computed(() => {
 // Methods
 const startStory = async () => {
   if (!storyTitle.value.trim()) return
-  
+
   try {
     isLoading.value = true
     const response = await storyService.startStory(storyTitle.value)
@@ -171,20 +189,20 @@ const startStory = async () => {
 
 const verifySentence = async () => {
   if (!userSentence.value.trim() || isLoading.value) return
-  
+
   try {
     isLoading.value = true
     const response = await storyService.addSentence(storyId.value, userSentence.value)
-    
+
     // Add sentence to list
     sentences.value.push(response.sentence)
     currentSentenceCount.value = sentences.value.length
-    
+
     // Show feedback
     feedbackMessage.value = response.sentence.feedback
     correctedSentence.value = response.sentence.corrected_text
     showFeedback.value = true
-    
+
     // Clear input
     userSentence.value = ''
   } catch (error) {
@@ -206,185 +224,74 @@ const completeStory = async () => {
   }
 }
 
+// const continueToPicture = () => {
+//   showFeedback.value = false
+//   // If we've reached the maximum sentences, show completion option
+//   if (currentSentenceCount.value >= maxSentences.value) {
+//     completeStory()
+//   }
+// }
+
 const continueToPicture = () => {
-  showFeedback.value = false
-  // If we've reached the maximum sentences, show completion option
+  showFeedback.value = false;
   if (currentSentenceCount.value >= maxSentences.value) {
-    completeStory()
+    completeStory();
   }
-}
+};
+
 
 const goToComics = () => {
   router.push('/comics')
 }
 </script>
-  
-  <style scoped>
-  .create-story-layout {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--color-white);
-  }
-  
-  .create-story-content {
-    padding: 2rem;
-    margin: 0 auto;
-    width: 100%;
-    max-width: 800px;
-    margin-top: 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .page-title {
-    font-family: 'Fredoka', sans-serif;
-    font-size: 2.5rem;
-    color: #FF00FF;
-    text-align: center;
-    margin-bottom: 4rem;
-  }
-  
-  .story-input-section {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2rem;
-  }
-  
-  .input-prompt {
-    font-family: 'Fredoka', sans-serif;
-    font-size: 1.8rem;
-    color: var(--color-black);
-  }
-  
-  .input-container {
-    width: 100%;
-  }
-  
-  .sentence-input {
-    width: 100%;
-    height: 120px;
-    padding: 1.5rem;
-    border: 2px solid #FF69B4;
-    border-radius: 24px;
-    font-family: 'Fredoka', sans-serif;
-    font-size: 1.5rem;
-    resize: none;
-    outline: none;
-  }
-  
-  .verify-button {
-    background-color: #FFE6F7;
-    color: var(--color-black);
-    border: none;
-    border-radius: 24px;
-    padding: 1rem 4rem;
-    font-family: 'Fredoka', sans-serif;
-    font-size: 1.2rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    margin-top: 2rem;
-  }
-  
-  .verify-button:hover {
-    background-color: #FFD1F1;
-  }
-  
-  /* Popup Styles */
-  .feedback-popup {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-  }
-  
-  .popup-content {
-    background-color: white;
-    padding: 2rem;
-    border-radius: 24px;
-    max-width: 600px;
-    width: 90%;
-    border: 2px solid #FF69B4;
-  }
-  
-  .popup-title {
-    font-family: 'Fredoka', sans-serif;
-    font-size: 2rem;
-    color: var(--color-black);
-    margin-bottom: 1.5rem;
-    text-align: center;
-  }
-  
-  .feedback-text {
-    font-family: 'Fredoka', sans-serif;
-    font-size: 1.2rem;
-    margin-bottom: 1.5rem;
-    line-height: 1.6;
-  }
-  
-  .correct-sentence {
-    font-family: 'Fredoka', sans-serif;
-    font-size: 1.2rem;
-    color: #FF00FF;
-    margin-bottom: 2rem;
-    text-align: center;
-  }
-  
-  .continue-button {
-    background-color: #FFE6F7;
-    color: var(--color-black);
-    border: none;
-    border-radius: 24px;
-    padding: 1rem 3rem;
-    font-family: 'Fredoka', sans-serif;
-    font-size: 1.2rem;
-    cursor: pointer;
-    display: block;
-    margin: 0 auto;
-    transition: background-color 0.3s ease;
-  }
-  
-  .continue-button:hover {
-    background-color: #FFD1F1;
-  }
-  
-  @media (max-width: 768px) {
-    .create-story-content {
-      padding: 1rem;
-    }
-  
-    .page-title {
-      font-size: 2rem;
-    }
-  
-    .input-prompt {
-      font-size: 1.5rem;
-    }
-  
-    .sentence-input {
-      font-size: 1.2rem;
-    }
-  
-    .start-story-section {
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-  text-align: center;
+
+<style scoped>
+/* Global Styles */
+/*body {
+  font-family: 'Fredoka', sans-serif;
+  background-color: var(--color-white);
+  margin: 0;
+  padding: 0;
+}*/
+
+.create-story-layout {
+  margin-top: 10%;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
+.create-story-content {
+  padding: 2rem;
+  margin: 0 auto;
+  max-width: 900px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.page-title {
+  font-size: 2.5rem;
+  color: #FF00FF;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.start-story-section,
+.story-writing-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+/* Start Story Section */
 .title-input {
   width: 100%;
   padding: 1rem;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   border: 2px solid #FF69B4;
   border-radius: 12px;
   margin-bottom: 1rem;
@@ -407,6 +314,7 @@ const goToComics = () => {
   cursor: not-allowed;
 }
 
+/* Progress Bar */
 .progress-bar {
   width: 100%;
   margin-bottom: 2rem;
@@ -429,22 +337,69 @@ const goToComics = () => {
 .progress-text {
   text-align: center;
   margin-bottom: 0.5rem;
-  font-family: 'Fredoka', sans-serif;
   color: var(--color-black);
   font-size: 1rem;
 }
 
-.story-writing-section {
+/* Story Writing Section */
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;  /* Horizontally center the content */
+  gap: 1rem;
   width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
 }
 
-.previous-sentences {
+.start-button,
+.verify-button,
+.next-button,
+.done-button {
+  display: block;
+  margin: 0 auto;  /* Center the button horizontally */
+}
+
+
+.input-prompt {
+  font-size: 1.8rem;
+  color: var(--color-black);
+}
+
+.sentence-input {
+  width: 100%;
+  height: 120px;
+  padding: 1.5rem;
+  border: 2px solid #FF69B4;
+  border-radius: 24px;
+  font-size: 1.5rem;
+  resize: none;
+  outline: none;
+  font-family: 'Fredoka', sans-serif;
+}
+
+.verify-button {
+  background-color: #FFE6F7;
+  color: var(--color-black);
+  border: none;
+  border-radius: 24px;
+  padding: 1rem 4rem;
+  font-size: 1.2rem;
+  cursor: pointer;
   margin-top: 2rem;
+  transition: background-color 0.3s ease;
+}
+
+.verify-button:hover {
+  background-color: #FFD1F1;
+}
+
+/* Previous Sentences Section */
+.previous-sentences {
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  margin-top: 2rem;
 }
 
 .sentence-card {
@@ -483,27 +438,190 @@ const goToComics = () => {
   display: block;
 }
 
-.popup-buttons {
+/* Feedback Popup */
+.feedback-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  gap: 1rem;
   justify-content: center;
-  margin-top: 1.5rem;
+  align-items: center;
+  z-index: 1000;
 }
 
-.complete-button {
+.popup-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 24px;
+  max-width: 600px;
+  width: 90%;
+  border: 2px solid #FF69B4;
+}
+
+.popup-title {
+  font-size: 2rem;
+  color: var(--color-black);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.popup-image {
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  border-radius: 16px;
+  margin: 1.5rem auto;
+  display: block;
+}
+
+.feedback-text {
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.correct-sentence {
+  font-size: 1.2rem;
+  color: #FF00FF;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.next-button {
+  background-color: #FFE6F7;
+  color: var(--color-black);
+  border: none;
+  border-radius: 24px;
+  padding: 1rem 3rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: block;
+  margin: 0 auto;
+  transition: background-color 0.3s ease;
+}
+
+.next-button:hover {
+  background-color: #FFD1F1;
+}
+
+.popup-buttons {
+  display: flex;
+  justify-content: center;  /* Horizontally center the buttons */
+  gap: 1rem;  /* Space between buttons */
+}
+
+.next-button,
+.done-button {
+  display: block;
+  margin: 0 auto;  /* Ensure the button is centered */
+}
+
+
+/* Completion Popup */
+.completion-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.popup-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 24px;
+  max-width: 600px;
+  width: 90%;
+  border: 2px solid #FF69B4;
+  text-align: center;
+}
+
+.popup-message {
+  font-size: 1.5rem;
+  color: var(--color-black);
+  margin-bottom: 1.5rem;
+}
+
+.done-button {
   background-color: #FF69B4;
   color: white;
   border: none;
   border-radius: 24px;
   padding: 1rem 2rem;
-  font-family: 'Fredoka', sans-serif;
   font-size: 1.2rem;
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
-.complete-button:hover {
+.done-button:hover {
   background-color: #FF1493;
 }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .create-story-content {
+    padding: 1rem;
   }
-  </style>
+
+  .page-title {
+    font-size: 2rem;
+  }
+
+  .input-prompt {
+    font-size: 1.5rem;
+  }
+
+  .sentence-input {
+    font-size: 1.2rem;
+  }
+
+  .start-story-section {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .title-input {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.2rem;
+    border: 2px solid #FF69B4;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+  }
+
+  .start-button {
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+  }
+
+  .progress-bar {
+    margin-bottom: 1.5rem;
+  }
+
+  .popup-content {
+    padding: 1.5rem;
+  }
+
+  .popup-title {
+    font-size: 1.8rem;
+  }
+
+  .next-button {
+    padding: 1rem 2.5rem;
+  }
+
+  .done-button {
+    padding: 1rem 2rem;
+  }
+}
+</style>
