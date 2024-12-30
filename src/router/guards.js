@@ -23,7 +23,7 @@ export const authGuard = (to, from, next) => {
 
 export const assessmentGuard = (to, from, next) => {
   // Skip guard for these paths
-  const bypassPaths = ['/', '/login', '/signup', '/assessment']
+  const bypassPaths = ['/', '/login', '/signup', '/assessment','/assessment/question']
   if (bypassPaths.includes(to.path)) {
     next()
     return
