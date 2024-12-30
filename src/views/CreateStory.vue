@@ -1,4 +1,3 @@
-// src/views/CreateStory.vue
 <template>
   <div class="create-story-layout">
     <Navigation :user-name="userName" />

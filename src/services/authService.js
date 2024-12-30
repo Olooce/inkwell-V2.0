@@ -15,7 +15,7 @@ export const authService = {
                 localStorage.setItem('user-token', token)
                 localStorage.setItem('refresh-token', refresh)
 
-                // // Fetch complete user info including assessment status
+                // // // Fetch complete user info including assessment status - for the navbar.
                 await this.fetchUserInfo()
 
                 return response.data
