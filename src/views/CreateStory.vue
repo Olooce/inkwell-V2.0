@@ -28,7 +28,7 @@
             <div
               class="progress-fill"
               :style="{ width: `${(currentSentenceCount / maxSentences) * 100}%` }"
-              ></div>
+            ></div>
           </div>
         </div>
 
@@ -71,23 +71,6 @@
           </div>
         </div>
 
-<!--        &lt;!&ndash; Feedback Popup &ndash;&gt;-->
-<!--        <div v-if="showFeedback" class="feedback-popup">-->
-<!--          <div class="popup-content">-->
-<!--            <h3 class="popup-title">Feedback</h3>-->
-<!--            <p class="feedback-text">{{ feedbackMessage }}</p>-->
-<!--            <p class="correct-sentence">{{ correctedSentence }}</p>-->
-<!--            <div class="popup-buttons">-->
-<!--              <button @click="continueToPicture" class="continue-button">-->
-<!--                Continue-->
-<!--              </button>-->
-<!--              <button v-if="canCompleteStory" @click="completeStory" class="complete-button">-->
-<!--                Complete Story-->
-<!--              </button>-->
-<!--            </div>-->
-<!--          </div>-->
-<!--        </div>-->
-
         <!-- Feedback Popup -->
         <div v-if="showFeedback" class="feedback-popup">
           <div class="popup-content">
@@ -125,12 +108,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Navigation from '@/components/Navigation.vue'
-import { storyService } from '@/services/storyService'
+import { storyStore } from '@/stores/storyStore.js'
 import { userStore } from '@/stores/userStore'
-import {IMAGE_URL} from '@/services/apiClient'
+import { IMAGE_URL } from '@/services/apiClient'
 
 const router = useRouter()
 const userName = computed(() => userStore.state.firstName.value)
@@ -151,7 +134,22 @@ const showCompletionPopup = ref(false)
 const feedbackMessage = ref('')
 const correctedSentence = ref('')
 
-// Computed properties
+// Check for saved state on page load
+onMounted(() => {
+  const savedStoryId = localStorage.getItem('storyId')
+  const savedMaxSentences = localStorage.getItem('maxSentences')
+  const savedSentenceCount = localStorage.getItem('currentSentenceCount')
+  const savedSentences = JSON.parse(localStorage.getItem('sentences'))
+
+  if (savedStoryId) {
+    storyId.value = savedStoryId
+    maxSentences.value = savedMaxSentences
+    currentSentenceCount.value = savedSentenceCount
+    sentences.value = savedSentences
+    storyStarted.value = true
+  }
+})
+
 const inputPrompt = computed(() => {
   if (sentences.value.length === 0) {
     return 'Start by typing your first sentence...'
@@ -166,9 +164,9 @@ const inputPlaceholder = computed(() => {
   return 'Continue your story...'
 })
 
-const canCompleteStory = computed(() => {
-  return sentences.value.length >= 3
-})
+// const canCompleteStory = computed(() => {
+//   return sentences.value.length >= 3
+// })
 
 // Methods
 const startStory = async () => {
@@ -176,10 +174,16 @@ const startStory = async () => {
 
   try {
     isLoading.value = true
-    const response = await storyService.startStory(storyTitle.value)
+    const response = await storyStore.startStory(storyTitle.value)
     storyId.value = response.story_id
     maxSentences.value = response.max_sentences
     storyStarted.value = true
+
+
+    localStorage.setItem('storyId', storyId.value)
+    localStorage.setItem('maxSentences', maxSentences.value)
+    localStorage.setItem('currentSentenceCount', currentSentenceCount.value)
+    localStorage.setItem('sentences', JSON.stringify(sentences.value))
   } catch (error) {
     alert(error.message)
   } finally {
@@ -192,7 +196,7 @@ const verifySentence = async () => {
 
   try {
     isLoading.value = true
-    const response = await storyService.addSentence(storyId.value, userSentence.value)
+    const response = await storyStore.addSentence(storyId.value, userSentence.value)
 
     // Add sentence to list
     sentences.value.push(response.sentence)
@@ -202,6 +206,10 @@ const verifySentence = async () => {
     feedbackMessage.value = response.sentence.feedback
     correctedSentence.value = response.sentence.corrected_text
     showFeedback.value = true
+
+    // Save to localStorage
+    localStorage.setItem('currentSentenceCount', currentSentenceCount.value)
+    localStorage.setItem('sentences', JSON.stringify(sentences.value))
 
     // Clear input
     userSentence.value = ''
@@ -227,22 +235,19 @@ const getSentenceImageUrl = (sentence) => {
 const completeStory = async () => {
   try {
     isLoading.value = true
-    await storyService.completeStory(storyId.value)
+    await storyStore.completeStory(storyId.value)
     showCompletionPopup.value = true
+
+    localStorage.removeItem('storyId')
+    localStorage.removeItem('maxSentences')
+    localStorage.removeItem('currentSentenceCount')
+    localStorage.removeItem('sentences')
   } catch (error) {
     alert(error.message)
   } finally {
     isLoading.value = false
   }
 }
-
-// const continueToPicture = () => {
-//   showFeedback.value = false
-//   // If we've reached the maximum sentences, show completion option
-//   if (currentSentenceCount.value >= maxSentences.value) {
-//     completeStory()
-//   }
-// }
 
 const continueToPicture = () => {
   showFeedback.value = false;
@@ -251,10 +256,10 @@ const continueToPicture = () => {
   }
 };
 
-
 const goToComics = () => {
   router.push('/comics')
 }
+
 </script>
 
 <style scoped>
@@ -358,7 +363,7 @@ const goToComics = () => {
 .input-container {
   display: flex;
   flex-direction: column;
-  align-items: center;  /* Horizontally center the content */
+  align-items: center; /* Horizontally center the content */
   gap: 1rem;
   width: 100%;
 }
@@ -368,7 +373,7 @@ const goToComics = () => {
 .next-button,
 .done-button {
   display: block;
-  margin: 0 auto;  /* Center the button horizontally */
+  margin: 0 auto; /* Center the button horizontally */
 }
 
 
@@ -521,14 +526,14 @@ const goToComics = () => {
 
 .popup-buttons {
   display: flex;
-  justify-content: center;  /* Horizontally center the buttons */
-  gap: 1rem;  /* Space between buttons */
+  justify-content: center; /* Horizontally center the buttons */
+  gap: 1rem; /* Space between buttons */
 }
 
 .next-button,
 .done-button {
   display: block;
-  margin: 0 auto;  /* Ensure the button is centered */
+  margin: 0 auto; /* Ensure the button is centered */
 }
 
 

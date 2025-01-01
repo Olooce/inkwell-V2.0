@@ -4,6 +4,22 @@
   </v-app>
 </template>
 
+<script>
+
+import { assessmentStore } from '@/stores/assessmentStore.js'
+import { storyStore } from '@/stores/storyStore.js'
+import { userStore } from '@/stores/userStore.js'
+
+
+export default {
+  mounted() {
+    assessmentStore.loadPersistedData()
+    storyStore.loadStateFromLocalStorage()
+    userStore.loadStoredUser()
+  }
+}
+</script>
+
 <style>
 :root {
   --color-dark-blue: #4E4FEB;
