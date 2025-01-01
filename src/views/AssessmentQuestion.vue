@@ -149,14 +149,18 @@ const submitAnswer = async () => {
       isCorrect: result.is_correct,
       message: result.feedback
     }
-    if (result.completed) {
-      handleCompletion()
-    }
-    else{
+
       showFeedback.value = true
-    }
+
   } catch (error) {
-    console.error('Error submitting answer:', error)
+    // If the error indicates that the question is already answered
+    if (error.response && error.response.data.error === 'Question already answered') {
+      // Directly continue to the next question or completion
+      handleContinue()
+    } else {
+      // Handle other errors (e.g., network issues)
+      console.error('Error submitting answer:', error)
+    }
   } finally {
     loading.value = false
   }

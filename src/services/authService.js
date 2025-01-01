@@ -60,17 +60,37 @@ export const authService = {
 
     async register(userData) {
         try {
-            const response = await apiClient.post('/auth/register/', {
+          console.log({
+            email: userData.email,
+            username: userData.email.split('@')[0],
+            password: userData.password,
+            first_name: userData.first_name,
+            last_name: userData.last_name
+          });
+
+          const response = await apiClient.post('/auth/register/', {
                 email: userData.email,
                 username: userData.email.split('@')[0],
                 password: userData.password,
                 first_name: userData.first_name,
                 last_name: userData.last_name
             })
+
+
             return response.data
         } catch (error) {
-            console.error('Registration error:', error.response?.data || error)
-            throw new Error(error.response?.data?.detail || 'Registration failed')
+          const errorData = error.response?.data || {};
+          let errorMessage = 'Registration failed';
+
+          if (errorData.email && errorData.email.length) {
+            errorMessage = errorData.email[0];
+          } else if (errorData.username && errorData.username.length) {
+            errorMessage = errorData.username[0];
+          } else if (errorData.detail) {
+            errorMessage = errorData.detail;
+          }
+
+          throw new Error(errorMessage);
         }
     },
 
