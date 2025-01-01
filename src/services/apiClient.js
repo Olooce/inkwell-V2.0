@@ -1,8 +1,8 @@
 import axios from 'axios'
 
-const BASE_URL = 'http://localhost:8000/api'
+const BASE_URL = 'https://849a-2c0f-fe38-218d-5beb-ed10-2ac2-d416-ba7.ngrok-free.app//api'
 
-export const IMAGE_URL = 'http://localhost:8000'
+export const IMAGE_URL = 'https://849a-2c0f-fe38-218d-5beb-ed10-2ac2-d416-ba7.ngrok-free.app/'
 
 const apiClient = axios.create({
     baseURL: BASE_URL,
@@ -34,6 +34,21 @@ apiClient.interceptors.response.use(
         return Promise.reject(error)
     }
 )
+
+apiClient.interceptors.response.use(
+  (response) => {
+    // Ensure the response is JSON
+    if (response.headers["content-type"]?.includes("application/json")) {
+      return response;
+    } else {
+      throw new Error("Unexpected HTML response from the server.");
+    }
+  },
+  (error) => {
+    console.error("Error with API request:", error);
+    return Promise.reject(error);
+  }
+);
 
 export default apiClient
 
