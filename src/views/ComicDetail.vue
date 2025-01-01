@@ -2,7 +2,7 @@
 <template>
   <div class="comic-detail-layout">
     <Navigation :user-name="userName" />
-    
+
     <main class="comic-detail-content">
       <!-- Navigation Header -->
       <div class="navigation-header">
@@ -22,9 +22,9 @@
         >
           <div class="pdf-fallback">
             <p>Unable to display PDF. Please download to view.</p>
-            <a 
-              :href="comic.comic_file" 
-              download 
+            <a
+              :href="comic.comic_file"
+              download
               class="download-button"
             >
               Download Comic
@@ -35,15 +35,15 @@
 
       <!-- Comic Actions -->
       <div class="comic-actions">
-        <a 
-          :href="comic?.comic_file" 
-          download 
+        <a
+          :href="comic?.comic_file"
+          download
           class="action-button download"
         >
           Download Comic
         </a>
-        <button 
-          @click="shareComic" 
+        <button
+          @click="shareComic"
           class="action-button share"
         >
           Share Comic
@@ -72,7 +72,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Navigation from '@/components/Navigation.vue'
 import { userStore } from '@/stores/userStore'
