@@ -60,14 +60,6 @@ export const authService = {
 
     async register(userData) {
         try {
-          console.log({
-            email: userData.email,
-            username: userData.email.split('@')[0],
-            password: userData.password,
-            first_name: userData.first_name,
-            last_name: userData.last_name
-          });
-
           const response = await apiClient.post('/auth/register/', {
                 email: userData.email,
                 username: userData.email.split('@')[0],
@@ -99,6 +91,7 @@ export const authService = {
         localStorage.removeItem('user-token')
         localStorage.removeItem('refresh-token')
         localStorage.removeItem('user-data')
+        localStorage.clear()
     },
 
     getToken() {
