@@ -16,7 +16,7 @@ export const authService = {
                 localStorage.setItem('refresh-token', refresh)
 
                 // // Fetch complete user info including assessment status
-                await this.fetchUserInfo()
+                // await this.fetchUserInfo()
 
                 return response.data
             }
