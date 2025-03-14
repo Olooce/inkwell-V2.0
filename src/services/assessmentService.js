@@ -1,3 +1,5 @@
+// NO NEED FOR THIS, CODE IS ON THE ASSESSMENTSTORE
+
 import apiClient from './apiClient'
 
 export const assessmentService = {

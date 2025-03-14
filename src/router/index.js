@@ -26,6 +26,12 @@ const routes = [
     {
         path: '/assessment',
         name: 'assessment',
+        component: () => import('@/views/AssessmentIntro.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: '/assessment/question',
+        name: 'assessment-question',
         component: () => import('@/views/AssessmentQuestion.vue'),
         meta: { requiresAuth: true }
       },
