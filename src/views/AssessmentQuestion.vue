@@ -1,4 +1,3 @@
-// src/views/AssessmentQuestion.vue
 <template>
   <div class="assessment-layout">
     <Navigation :user-name="userName" />

@@ -91,7 +91,6 @@
 
 <script setup>
 
-// Update your script section in SignupView.vue
 
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -147,8 +146,8 @@ const handleSignup = async () => {
       password: password.value
     })
     
-    // Navigate to dashboard
-    router.push('/dashboard')
+    // Navigate to assessment
+    router.push('/assessment')
   } catch (err) {
     console.error('Registration error:', err)
     error.value = err.message

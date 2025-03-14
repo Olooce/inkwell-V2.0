@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const BASE_URL = 'https://366a-105-161-150-104.ngrok-free.app/api'
+const BASE_URL = 'http://localhost:8000/api'
 
 const apiClient = axios.create({
     baseURL: BASE_URL,

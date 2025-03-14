@@ -122,8 +122,9 @@ const handleLogin = async () => {
       password: password.value
     })
 
+
     // Redirect based on assessment status
-    if (userData.initial_assessment_completed) {
+    if (userData.user.initial_assessment_completed) {
       router.push('/dashboard')
     } else {
       router.push('/assessment')
