@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const BASE_URL = 'http://localhost:8000/api'
+const BASE_URL = 'https://366a-105-161-150-104.ngrok-free.app/api'
 
 const apiClient = axios.create({
     baseURL: BASE_URL,
@@ -27,7 +27,7 @@ apiClient.interceptors.response.use(
         if (error.response?.status === 403 || error.response?.status === 401) {
             localStorage.removeItem('user-token')
             localStorage.removeItem('user-data')
-            window.location.href = '/login' // Use window.location instead of router
+            window.location.href = '/login'
         }
         return Promise.reject(error)
     }
