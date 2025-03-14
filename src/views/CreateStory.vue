@@ -113,7 +113,7 @@
             <h2 class="popup-title">WOWWW!</h2>
             <div class="popup-message">
               <p>YOU DID IT! GREAT JOB!</p>
-              <p>Find your comic in the comic section.</p>
+              <p>Find your story in the comic section.</p>
             </div>
             <button @click="goToComics" class="done-button">
               View Comic
