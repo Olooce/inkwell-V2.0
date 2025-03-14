@@ -1,0 +1,509 @@
+// src/views/CreateStory.vue
+<template>
+  <div class="create-story-layout">
+    <Navigation :user-name="userName" />
+    
+    <main class="create-story-content">
+      <div v-if="!storyStarted" class="start-story-section">
+        <h1 class="page-title">Start Your Story Adventure!</h1>
+        <div class="input-container">
+          <input 
+            v-model="storyTitle" 
+            class="title-input"
+            placeholder="Enter your story title..."
+            @keyup.enter="startStory"
+          />
+          <button @click="startStory" class="start-button" :disabled="!storyTitle">
+            Begin Story
+          </button>
+        </div>
+      </div>
+
+      <div v-else class="story-writing-section">
+        <h1 class="page-title">WARM UP YOUR WRITING SKILLS!</h1>
+        <div class="progress-bar">
+          <div class="progress-text">
+            {{ currentSentenceCount }} of {{ maxSentences }} sentences
+          </div>
+          <div class="progress-track">
+            <div 
+              class="progress-fill" 
+              :style="{ width: `${(currentSentenceCount / maxSentences) * 100}%` }"
+              ></div>
+          </div>
+        </div>
+        
+        <div class="story-input-section">
+          <h2 class="input-prompt">{{ inputPrompt }}</h2>
+          <div class="input-container">
+            <textarea 
+              v-model="userSentence" 
+              class="sentence-input"
+              :placeholder="inputPlaceholder"
+              @keydown.enter.prevent="verifySentence"
+              :disabled="isLoading"
+            ></textarea>
+          </div>
+          <button 
+            @click="verifySentence" 
+            class="verify-button"
+            :disabled="!userSentence.trim() || isLoading"
+          >
+            {{ isLoading ? 'Processing...' : 'Verify' }}
+          </button>
+        </div>
+
+        <!-- Previous Sentences -->
+        <div v-if="sentences.length > 0" class="previous-sentences">
+          <div 
+            v-for="sentence in sentences" 
+            :key="sentence.id" 
+            class="sentence-card"
+          >
+            <p class="original-text">{{ sentence.original_text }}</p>
+            <p class="corrected-text">{{ sentence.corrected_text }}</p>
+            <p class="feedback">{{ sentence.feedback }}</p>
+            <img 
+              v-if="sentence.image_url" 
+              :src="sentence.image_url" 
+              :alt="sentence.corrected_text"
+              class="sentence-image"
+            />
+          </div>
+        </div>
+
+        <!-- Feedback Popup -->
+        <div v-if="showFeedback" class="feedback-popup">
+          <div class="popup-content">
+            <h3 class="popup-title">Feedback</h3>
+            <p class="feedback-text">{{ feedbackMessage }}</p>
+            <p class="correct-sentence">{{ correctedSentence }}</p>
+            <div class="popup-buttons">
+              <button @click="continueToPicture" class="continue-button">
+                Continue
+              </button>
+              <button v-if="canCompleteStory" @click="completeStory" class="complete-button">
+                Complete Story
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Completion Popup -->
+        <div v-if="showCompletionPopup" class="completion-popup">
+          <div class="popup-content">
+            <h2 class="popup-title">WOWWW!</h2>
+            <div class="popup-message">
+              <p>YOU DID IT! GREAT JOB!</p>
+              <p>Find your comic in the comic section.</p>
+            </div>
+            <button @click="goToComics" class="done-button">
+              View Comic
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import Navigation from '@/components/Navigation.vue'
+import { storyService } from '@/services/storyService'
+import { userStore } from '@/stores/userStore'
+
+const router = useRouter()
+const userName = computed(() => userStore.state.firstName.value)
+
+// Story state
+const storyId = ref(null)
+const storyTitle = ref('')
+const storyStarted = ref(false)
+const maxSentences = ref(0)
+const currentSentenceCount = ref(0)
+const sentences = ref([])
+
+// UI state
+const userSentence = ref('')
+const isLoading = ref(false)
+const showFeedback = ref(false)
+const showCompletionPopup = ref(false)
+const feedbackMessage = ref('')
+const correctedSentence = ref('')
+
+// Computed properties
+const inputPrompt = computed(() => {
+  if (sentences.value.length === 0) {
+    return 'Start by typing your first sentence...'
+  }
+  return 'What happens next?'
+})
+
+const inputPlaceholder = computed(() => {
+  if (sentences.value.length === 0) {
+    return 'Type your first sentence here...'
+  }
+  return 'Continue your story...'
+})
+
+const canCompleteStory = computed(() => {
+  return sentences.value.length >= 3
+})
+
+// Methods
+const startStory = async () => {
+  if (!storyTitle.value.trim()) return
+  
+  try {
+    isLoading.value = true
+    const response = await storyService.startStory(storyTitle.value)
+    storyId.value = response.story_id
+    maxSentences.value = response.max_sentences
+    storyStarted.value = true
+  } catch (error) {
+    alert(error.message)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const verifySentence = async () => {
+  if (!userSentence.value.trim() || isLoading.value) return
+  
+  try {
+    isLoading.value = true
+    const response = await storyService.addSentence(storyId.value, userSentence.value)
+    
+    // Add sentence to list
+    sentences.value.push(response.sentence)
+    currentSentenceCount.value = sentences.value.length
+    
+    // Show feedback
+    feedbackMessage.value = response.sentence.feedback
+    correctedSentence.value = response.sentence.corrected_text
+    showFeedback.value = true
+    
+    // Clear input
+    userSentence.value = ''
+  } catch (error) {
+    alert(error.message)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const completeStory = async () => {
+  try {
+    isLoading.value = true
+    await storyService.completeStory(storyId.value)
+    showCompletionPopup.value = true
+  } catch (error) {
+    alert(error.message)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const continueToPicture = () => {
+  showFeedback.value = false
+  // If we've reached the maximum sentences, show completion option
+  if (currentSentenceCount.value >= maxSentences.value) {
+    completeStory()
+  }
+}
+
+const goToComics = () => {
+  router.push('/comics')
+}
+</script>
+  
+  <style scoped>
+  .create-story-layout {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-white);
+  }
+  
+  .create-story-content {
+    padding: 2rem;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 800px;
+    margin-top: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .page-title {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 2.5rem;
+    color: #FF00FF;
+    text-align: center;
+    margin-bottom: 4rem;
+  }
+  
+  .story-input-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+  }
+  
+  .input-prompt {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.8rem;
+    color: var(--color-black);
+  }
+  
+  .input-container {
+    width: 100%;
+  }
+  
+  .sentence-input {
+    width: 100%;
+    height: 120px;
+    padding: 1.5rem;
+    border: 2px solid #FF69B4;
+    border-radius: 24px;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.5rem;
+    resize: none;
+    outline: none;
+  }
+  
+  .verify-button {
+    background-color: #FFE6F7;
+    color: var(--color-black);
+    border: none;
+    border-radius: 24px;
+    padding: 1rem 4rem;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 2rem;
+  }
+  
+  .verify-button:hover {
+    background-color: #FFD1F1;
+  }
+  
+  /* Popup Styles */
+  .feedback-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .popup-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 24px;
+    max-width: 600px;
+    width: 90%;
+    border: 2px solid #FF69B4;
+  }
+  
+  .popup-title {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 2rem;
+    color: var(--color-black);
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+  
+  .feedback-text {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+  }
+  
+  .correct-sentence {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.2rem;
+    color: #FF00FF;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+  
+  .continue-button {
+    background-color: #FFE6F7;
+    color: var(--color-black);
+    border: none;
+    border-radius: 24px;
+    padding: 1rem 3rem;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: block;
+    margin: 0 auto;
+    transition: background-color 0.3s ease;
+  }
+  
+  .continue-button:hover {
+    background-color: #FFD1F1;
+  }
+  
+  @media (max-width: 768px) {
+    .create-story-content {
+      padding: 1rem;
+    }
+  
+    .page-title {
+      font-size: 2rem;
+    }
+  
+    .input-prompt {
+      font-size: 1.5rem;
+    }
+  
+    .sentence-input {
+      font-size: 1.2rem;
+    }
+  
+    .start-story-section {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.title-input {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.2rem;
+  border: 2px solid #FF69B4;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  font-family: 'Fredoka', sans-serif;
+}
+
+.start-button {
+  background-color: #FFE6F7;
+  color: var(--color-black);
+  border: none;
+  border-radius: 12px;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.start-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.progress-bar {
+  width: 100%;
+  margin-bottom: 2rem;
+}
+
+.progress-track {
+  width: 100%;
+  height: 10px;
+  background-color: #FFE6F7;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #FF69B4;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  text-align: center;
+  margin-bottom: 0.5rem;
+  font-family: 'Fredoka', sans-serif;
+  color: var(--color-black);
+  font-size: 1rem;
+}
+
+.story-writing-section {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.previous-sentences {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sentence-card {
+  background-color: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #FFE6F7;
+}
+
+.original-text {
+  color: #666;
+  font-style: italic;
+  margin-bottom: 0.5rem;
+}
+
+.corrected-text {
+  color: #FF69B4;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.feedback {
+  background-color: #FFE6F7;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.sentence-image {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  border-radius: 8px;
+  margin: 1rem auto;
+  display: block;
+}
+
+.popup-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.complete-button {
+  background-color: #FF69B4;
+  color: white;
+  border: none;
+  border-radius: 24px;
+  padding: 1rem 2rem;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.complete-button:hover {
+  background-color: #FF1493;
+}
+  }
+  </style>

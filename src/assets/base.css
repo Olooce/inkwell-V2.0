@@ -1,0 +1,25 @@
+/* Reset default styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --color-black: #000000;
+  --color-white: #ffffff;
+  --color-dark-blue: #4E4FEB;
+  --color-light-blue: #068FFF;
+  --color-light-blue-18: rgba(6, 143, 255, 0.18);
+  --color-purple: #FF06FF;
+  --color-purple-18: rgba(255, 6, 255, 0.18);
+  --color-orange-38: rgba(255, 147, 6, 0.38);
+  --color-light-green-29: rgba(43, 255, 6, 0.29);
+  --color-red: #FF0004;
+  --color-red-38: rgba(255, 0, 4, 0.38);
+}
+
+body {
+  min-height: 100vh;
+  font-family: 'Fredoka', sans-serif;
+}
