@@ -17,7 +17,9 @@ export const userStore = {
     state.lastName.value = userData.last_name
     state.isAuthenticated.value = true
     state.initial_assessment_completed.value = Boolean(userData.initial_assessment_completed)
-    
+
+    // localStorage.setItem('user-data', JSON.stringify(userData))
+
     console.log('User store updated:', {
       email: state.email.value,
       firstName: state.firstName.value,
