@@ -6,15 +6,18 @@ export const authService = {
         try {
             const response = await apiClient.post('/auth/login/', credentials)
             const { access, refresh, user } = response.data
-            
+
+           console.log(user);
+            userStore.setUser(user);
+
             if (access) {
                 const token = `Bearer ${access}`
                 localStorage.setItem('user-token', token)
                 localStorage.setItem('refresh-token', refresh)
-                
-                // Fetch complete user info including assessment status
+
+                // // Fetch complete user info including assessment status
                 await this.fetchUserInfo()
-                
+
                 return response.data
             }
             throw new Error('Login failed - no access token received')
@@ -26,8 +29,8 @@ export const authService = {
 
     async fetchUserInfo() {
         try {
-            const response = await apiClient.get('/auth/user-info/') 
-            
+            const response = await apiClient.get('/auth/userInformation/')
+              console.log(response)
             // Parse and extract initial assessment status correctly
             const userData = {
                 email: response.data.email,
@@ -35,12 +38,12 @@ export const authService = {
                 last_name: response.data.last_name || '',
                 initial_assessment_completed: response.data.initial_assessment_completed === true
             }
-            
+
             console.log('Fetched user data:', userData) // Debug log
-            
+
             localStorage.setItem('user-data', JSON.stringify(userData))
             userStore.setUser(userData)
-            
+
             return userData
         } catch (error) {
             console.error('Error fetching user info:', error)
