@@ -28,7 +28,7 @@
       <div class="form-container">
         <h1 class="form-title">Create an Account</h1>
         <p class="form-subtitle">
-          Already have an account? 
+          Already have an account?
           <router-link to="/login" class="login-link">Log in</router-link>
         </p>
 
@@ -83,7 +83,7 @@
           {{ loading ? 'Creating Account...' : 'Sign Up' }}
         </v-btn>
 
-        
+
       </div>
     </div>
   </div>
@@ -114,11 +114,11 @@ const validateForm = () => {
   if (!firstName.value.trim() || !lastName.value.trim() || !email.value.trim() || !password.value) {
     throw new Error('Please fill in all fields')
   }
-  
+
   if (!email.value.includes('@') || !email.value.includes('.')) {
     throw new Error('Please enter a valid email address')
   }
-  
+
   if (password.value.length < 8) {
     throw new Error('Password must be at least 8 characters')
   }
@@ -127,7 +127,7 @@ const validateForm = () => {
 const handleSignup = async () => {
   error.value = ''
   loading.value = true
-  
+
   try {
     validateForm()
 
@@ -139,13 +139,12 @@ const handleSignup = async () => {
     }
 
     await authService.register(registrationData)
-    
+
     // Login after successful registration
     await authService.login({
       email: email.value,
       password: password.value
     })
-    
     // Navigate to assessment
     router.push('/assessment')
   } catch (err) {

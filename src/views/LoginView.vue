@@ -26,7 +26,7 @@
       <div class="form-container">
         <h1 class="form-title">Get back to it!</h1>
         <p class="form-subtitle">
-          Don't have an account? 
+          Don't have an account?
           <router-link to="/signup" class="signup-link">Sign Up</router-link>
         </p>
 
@@ -79,7 +79,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '@/services/authService'
-import { userStore } from '@/stores/userStore'
+
 
 const router = useRouter()
 const form = ref(null)
