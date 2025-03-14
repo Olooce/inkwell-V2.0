@@ -40,7 +40,7 @@
   import { useRouter } from 'vue-router'
   import Navigation from '@/components/Navigation.vue'
   import { userStore } from '@/stores/userStore'
-  import { assessmentService } from '@/services/assessmentService'
+//   import { assessmentService } from '@/services/assessmentService' - NO NEED FOR THIS
   import { assessmentStore } from '@/stores/assessmentStore'
   
   const router = useRouter()
@@ -54,7 +54,8 @@
     
     try {
       // Use assessment service to start assessment
-      const data = await assessmentService.startAssessment()
+      const data = await assessmentStore.startAssessment()
+      console.log(data)
       
       // Store session data in assessment store
       assessmentStore.state.currentSession.value = data.session_id
