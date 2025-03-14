@@ -1,16 +1,16 @@
 <template>
     <div class="assessment-layout">
       <Navigation :user-name="userName" />
-      
+
       <main class="assessment-content">
         <div class="assessment-card">
           <h1 class="title">HEY THERE!</h1>
           <p class="message">
-            It's your first time using inkwell, welcome! Get ready for an amazing adventure. 
+            It's your first time using inkwell, welcome! Get ready for an amazing adventure.
             To begin, you need to answer a few questions.
           </p>
           <p class="sub-message">Let's dive right in!</p>
-          
+
           <v-btn
             class="start-btn"
             :loading="loading"
@@ -22,7 +22,7 @@
             {{ loading ? 'Loading...' : 'START' }}
           </v-btn>
         </div>
-  
+
         <v-alert
           v-if="error"
           type="error"
@@ -34,33 +34,37 @@
       </main>
     </div>
   </template>
-  
+
   <script setup>
   import { ref } from 'vue'
   import { useRouter } from 'vue-router'
   import Navigation from '@/components/Navigation.vue'
   import { userStore } from '@/stores/userStore'
-  import { assessmentService } from '@/services/assessmentService'
+  // import { assessmentService } from '@/services/assessmentService'
   import { assessmentStore } from '@/stores/assessmentStore'
-  
+
   const router = useRouter()
   const userName = ref(userStore.state.firstName.value || 'Guest')
   const loading = ref(false)
   const error = ref('')
-  
+
   const startAssessment = async () => {
     loading.value = true
     error.value = ''
-    
+
     try {
       // Use assessment service to start assessment
-      const data = await assessmentService.startAssessment()
-      
+      const data = await assessmentStore.startAssessment()
+
+
+      console.log(data)
+
+
       // Store session data in assessment store
       assessmentStore.state.currentSession.value = data.session_id
       assessmentStore.state.questions.value = data.questions
       assessmentStore.state.currentQuestionIndex.value = 0
-      
+
       // Navigate to first question
       router.push('/assessment/question')
     } catch (err) {
@@ -71,7 +75,7 @@
     }
   }
   </script>
-  
+
 
 <style scoped>
 .assessment-layout {
