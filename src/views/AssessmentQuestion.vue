@@ -8,51 +8,58 @@
           Question {{ progress.current }} of {{ progress.total }}
         </div>
 
-        <!-- Masked Word Question Type -->
-        <template v-if="currentQuestion.question_type === 'masked'">
-          <h2 class="instruction">
-            Fill in the blank with the most appropriate word:
-          </h2>
-          <div class="sentence-container">
-            <div class="sentence">
-              {{ formatMaskedSentence(currentQuestion.masked_sentence) }}
-            </div>
-            <input
-              v-model="userAnswer"
-              class="answer-input"
-              placeholder="Type your answer..."
-              @keyup.enter="submitAnswer"
-              :disabled="loading"
-            />
-          </div>
-        </template>
+        <div v-if="loading" class="loading-container">
+          <div class="spinner"></div>
+          <p>Checking your answer...</p>
+        </div>
 
-        <!-- Error Correction Question Type -->
-        <template v-else>
-          <h2 class="instruction">
-            Correct the error in this sentence:
-          </h2>
-          <div class="sentence-container">
-            <div class="sentence error">
-              {{ currentQuestion.error_sentence }}
+        <div v-else>
+          <!-- Masked Word Question Type -->
+          <template v-if="currentQuestion.question_type === 'masked'">
+            <h2 class="instruction">
+              Fill in the blank with the most appropriate word:
+            </h2>
+            <div class="sentence-container">
+              <div class="sentence">
+                {{ formatMaskedSentence(currentQuestion.masked_sentence) }}
+              </div>
+              <input
+                v-model="userAnswer"
+                class="answer-input"
+                placeholder="Type your answer..."
+                @keyup.enter="submitAnswer"
+                :disabled="loading"
+              />
             </div>
-            <input
-              v-model="userAnswer"
-              class="answer-input"
-              placeholder="Type the corrected sentence..."
-              @keyup.enter="submitAnswer"
-              :disabled="loading"
-            />
-          </div>
-        </template>
+          </template>
 
-        <button
-          class="submit-btn"
-          @click="submitAnswer"
-          :disabled="!userAnswer || loading"
-        >
-          Submit
-        </button>
+          <!-- Error Correction Question Type -->
+          <template v-else>
+            <h2 class="instruction">
+              Correct the error in this sentence:
+            </h2>
+            <div class="sentence-container">
+              <div class="sentence error">
+                {{ currentQuestion.error_sentence }}
+              </div>
+              <input
+                v-model="userAnswer"
+                class="answer-input"
+                placeholder="Type the corrected sentence..."
+                @keyup.enter="submitAnswer"
+                :disabled="loading"
+              />
+            </div>
+          </template>
+
+          <button
+            class="submit-btn"
+            @click="submitAnswer"
+            :disabled="!userAnswer || loading"
+          >
+            Submit
+          </button>
+        </div>
       </div>
 
       <!-- Feedback Modal -->
@@ -76,6 +83,28 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
+
+      <!-- Completion Modal -->
+      <v-dialog v-model="showCompletionModal" max-width="500px">
+        <v-card>
+          <v-card-title class="feedback-title text-primary">
+            Assessment Complete!
+          </v-card-title>
+          <v-card-text class="feedback-text">
+            You have completed your assessment. You can now proceed to the dashboard to create a story.
+          </v-card-text>
+          <v-card-actions>
+            <v-btn
+              block
+              color="success"
+              @click="redirectToDashboard"
+            >
+              Go to Dashboard
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
     </main>
   </div>
 </template>
@@ -90,14 +119,14 @@ import { userStore } from '@/stores/userStore'
 const router = useRouter()
 const userName = computed(() => {
   return userStore.state.firstName.value ||
-         userStore.state.email.value?.split('@')[0] ||
-         'Guest'
+    userStore.state.email.value?.split('@')[0] ||
+    'Guest'
 })
-
 
 const userAnswer = ref('')
 const loading = ref(false)
 const showFeedback = ref(false)
+const showCompletionModal = ref(false)
 const feedback = ref({ isCorrect: false, message: '' })
 
 const currentQuestion = computed(() => assessmentStore.getCurrentQuestion())
@@ -110,8 +139,6 @@ const formatMaskedSentence = (sentence) => {
   return sentence?.replace('[MASK]', '_____') || ''
 }
 
-console.log('Handling completion, navigating to dashboard...');
-
 const submitAnswer = async () => {
   if (!userAnswer.value || loading.value) return
 
@@ -122,10 +149,11 @@ const submitAnswer = async () => {
       isCorrect: result.is_correct,
       message: result.feedback
     }
-    showFeedback.value = true
-
     if (result.completed) {
       handleCompletion()
+    }
+    else{
+      showFeedback.value = true
     }
   } catch (error) {
     console.error('Error submitting answer:', error)
@@ -148,15 +176,19 @@ const handleContinue = () => {
 const handleCompletion = () => {
   userStore.state.initial_assessment_completed.value = true
 
-  // Update stored user data
   const userData = JSON.parse(localStorage.getItem('user-data') || '{}')
   userData.initial_assessment_completed = true
   localStorage.setItem('user-data', JSON.stringify(userData))
 
-  // Redirect to dashboard
+  showCompletionModal.value = true
+}
+
+const redirectToDashboard = () => {
+  showCompletionModal.value = false
   router.push('/dashboard')
 }
 </script>
+
 
 <style scoped>
 .assessment-layout {
@@ -243,5 +275,39 @@ const handleCompletion = () => {
   padding: 1rem;
   font-size: 1.1rem;
   line-height: 1.6;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px; /* Adjust based on the container size */
+  text-align: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid transparent;
+  border-top: 4px solid var(--color-light-blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-container p {
+  margin-top: 1rem;
+  font-size: 1.2rem;
+  color: var(--color-light-blue);
+  font-family: 'Fredoka', sans-serif;
 }
 </style>
