@@ -30,3 +30,12 @@ coverage
 *.tsbuildinfo
 
 .env
+.idea/
+node_modules/
+target/
+build/
+dist/
+coverage/
+db.properties
+Thumbs.db
+cmake-build-debug
