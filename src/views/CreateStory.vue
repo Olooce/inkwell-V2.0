@@ -64,7 +64,7 @@
             <p class="feedback">{{ sentence.feedback }}</p>
             <img
               v-if="sentence.image_url"
-              :src="sentence.image_url"
+              :src="getSentenceImageUrl(sentence)"
               :alt="sentence.corrected_text"
               class="sentence-image"
             />
@@ -130,7 +130,7 @@ import { useRouter } from 'vue-router'
 import Navigation from '@/components/Navigation.vue'
 import { storyService } from '@/services/storyService'
 import { userStore } from '@/stores/userStore'
-import {BASE_URL} from '@/services/apiClient'
+import {IMAGE_URL} from '@/services/apiClient'
 
 const router = useRouter()
 const userName = computed(() => userStore.state.firstName.value)
@@ -214,10 +214,15 @@ const verifySentence = async () => {
 
 const currentSentenceImageUrl = computed(() => {
   const sentence = sentences.value[currentSentenceCount.value - 1];
-  console.log(sentence.image_url);
-  console.log(`${BASE_URL}${sentence.image_url}`);
-  return sentence?.image_url ? `${BASE_URL}${sentence.image_url}` : '';
+  return sentence?.image_url ? `${IMAGE_URL}${sentence.image_url}` : '';
 });
+
+const getSentenceImageUrl = (sentence) => {
+  if (!sentence?.image_url) {
+    return '';
+  }
+  return `${IMAGE_URL}${sentence.image_url}`;
+};
 
 const completeStory = async () => {
   try {
@@ -477,7 +482,7 @@ const goToComics = () => {
 
 .popup-image {
   width: 100%;
-  max-width: 500px;
+  max-width: 200px;
   height: auto;
   border-radius: 16px;
   margin: 1.5rem auto;

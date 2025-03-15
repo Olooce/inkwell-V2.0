@@ -80,6 +80,12 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
+        path: '/writing-tips/:id',
+        component: 'writing-tip-view',
+        component: () => import('@/views/WritingTipView.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
         path: '/progress',
         name: 'progress',
         component: () => import('@/views/Progress.vue'),
