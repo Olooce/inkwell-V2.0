@@ -158,8 +158,7 @@ const submitAnswer = async () => {
       // Directly continue to the next question or completion
       handleContinue()
     } else {
-      // Handle other errors (e.g., network issues)
-      console.error('Error submitting answer:', error)
+         console.error('Error submitting answer:', error)
     }
   } finally {
     loading.value = false
@@ -183,6 +182,8 @@ const handleCompletion = () => {
   const userData = JSON.parse(localStorage.getItem('user-data') || '{}')
   userData.initial_assessment_completed = true
   localStorage.setItem('user-data', JSON.stringify(userData))
+
+  assessmentStore.resetAssessment()
 
   showCompletionModal.value = true
 }
