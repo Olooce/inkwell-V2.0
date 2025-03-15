@@ -1,76 +1,55 @@
-import { ref } from 'vue'
-import { storyService } from '@/services/storyService'
+import apiClient from './apiClient'
 
-const state = {
-  currentStory: ref(null),
-  sentences: ref([]),
-  storyStatus: ref('not_started'), // not_started, in_progress, completed
-  maxSentences: ref(0),
-  currentSentenceCount: ref(0),
-  error: ref(null)
-}
-
-export const storyStore = {
-  state,
-
+export const storyService = {
   async startStory(title) {
     try {
-      state.error.value = null
-      const response = await storyService.startStory(title)
-      
-      state.currentStory.value = {
-        id: response.story_id,
-        title,
-        guidance: response.guidance
-      }
-      state.maxSentences.value = response.max_sentences
-      state.storyStatus.value = 'in_progress'
-      state.sentences.value = []
-      state.currentSentenceCount.value = 0
-      
-      return response
+      const response = await apiClient.post('/stories/start_story/', { title })
+      return response.data
     } catch (error) {
-      state.error.value = error.message
-      throw error
+      console.error('Start story error:', error.response?.data || error)
+      throw new Error(error.response?.data?.error || 'Failed to start story')
     }
   },
 
-  async addSentence(sentence) {
+  async addSentence(storyId, sentence) {
     try {
-      state.error.value = null
-      const response = await storyService.addSentence(
-        state.currentStory.value.id, 
+      const response = await apiClient.post(`/stories/${storyId}/add_sentence/`, {
         sentence
-      )
-      
-      state.sentences.value = [...state.sentences.value, response.sentence]
-      state.currentSentenceCount.value = state.sentences.value.length
-      
-      return response
+      })
+      return response.data
     } catch (error) {
-      state.error.value = error.message
-      throw error
+      console.error('Add sentence error:', error.response?.data || error)
+      throw new Error(error.response?.data?.error || 'Failed to add sentence')
     }
   },
 
-  async completeStory() {
+  async completeStory(storyId) {
     try {
-      state.error.value = null
-      const response = await storyService.completeStory(state.currentStory.value.id)
-      state.storyStatus.value = 'completed'
-      return response
+      const response = await apiClient.post(`/stories/${storyId}/complete_story/`)
+      return response.data
     } catch (error) {
-      state.error.value = error.message
-      throw error
+      console.error('Complete story error:', error.response?.data || error)
+      throw new Error(error.response?.data?.error || 'Failed to complete story')
     }
   },
 
-  clearStory() {
-    state.currentStory.value = null
-    state.sentences.value = []
-    state.storyStatus.value = 'not_started'
-    state.maxSentences.value = 0
-    state.currentSentenceCount.value = 0
-    state.error.value = null
+  async getProgress() {
+    try {
+      const response = await apiClient.get('/stories/progress/')
+      return response.data
+    } catch (error) {
+      console.error('Get progress error:', error.response?.data || error)
+      throw new Error(error.response?.data?.error || 'Failed to get progress')
+    }
+  },
+
+  async getAllStories() {
+    try {
+      const response = await apiClient.get('/stories/')
+      return response.data
+    } catch (error) {
+      console.error('Get stories error:', error.response?.data || error)
+      throw new Error(error.response?.data?.error || 'Failed to get stories')
+    }
   }
 }
