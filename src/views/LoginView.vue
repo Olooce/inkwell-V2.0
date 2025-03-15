@@ -117,10 +117,10 @@ const handleLogin = async () => {
     error.value = ''
 
     // Attempt login
-    const userData = await authService.login({
-      email: email.value,
-      password: password.value
-    })
+    const userData = await authService.login(
+      email.value,
+      password.value
+    )
 
 
     // Redirect based on assessment status

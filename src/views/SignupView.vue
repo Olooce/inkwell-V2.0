@@ -143,10 +143,10 @@ const handleSignup = async () => {
     await authService.register(registrationData);
 
     // Login after successful registration
-    await authService.login({
-      email: email.value,
-      password: password.value
-    });
+    await authService.login(
+      email.value,
+      password.value
+  );
 
     // Navigate to assessment
     router.push('/assessment');
