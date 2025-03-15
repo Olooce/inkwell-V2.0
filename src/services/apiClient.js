@@ -44,10 +44,10 @@ apiClient.interceptors.response.use(
       throw new Error("Unexpected HTML response from the server.");
     }
   },
-  (error) => {
-    console.error("Error with API request:", error);
-    return Promise.reject(error);
-  }
+  // (error) => {
+  //   console.error("Error with API request:", error);
+  //   return Promise.reject(error);
+  // }
 );
 
 export default apiClient
