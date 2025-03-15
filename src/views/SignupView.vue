@@ -21,10 +21,11 @@
         </v-carousel-item>
       </v-carousel>
     </div>
-    <div v-if="error" class="error-message">
-      {{ error }}
-    </div>
+
     <div class="form-section">
+      <div v-if="error" class="error-message">
+        {{ error }}
+      </div>
       <div class="form-container">
         <h1 class="form-title">Create an Account</h1>
         <p class="form-subtitle">
@@ -125,35 +126,44 @@ const validateForm = () => {
 }
 
 const handleSignup = async () => {
-  error.value = ''
-  loading.value = true
+  error.value = '';
+  loading.value = true;
 
   try {
-    validateForm()
+    validateForm();
 
     const registrationData = {
       email: email.value,
       first_name: firstName.value,
       last_name: lastName.value,
       password: password.value
-    }
+    };
 
-    await authService.register(registrationData)
+    // Attempt to register the user
+    await authService.register(registrationData);
 
     // Login after successful registration
     await authService.login({
       email: email.value,
       password: password.value
-    })
+    });
+
     // Navigate to assessment
-    router.push('/assessment')
+    router.push('/assessment');
   } catch (err) {
-    console.error('Registration error:', err)
-    error.value = err.message
+    if (err.message.includes('user with this email address already exists')) {
+      error.value = 'This email address is already associated with another account.';
+    } else if (err.message.includes('A user with that username already exists')) {
+      error.value = 'This username is already taken. Please choose another one.';
+    } else {
+      error.value = err.message || 'An unexpected error occurred. Please try again.';
+    }
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
+
+
 
 </script>
 
@@ -188,13 +198,18 @@ const handleSignup = async () => {
   background-color: rgba(255, 68, 68, 0.1);
   border-radius: 8px;
   font-weight: 500;
+  width: 100%;
+  max-width: 480px; /* Ensure it matches the form width */
+  margin-bottom: 2rem; /* Add margin to separate from form */
 }
 
 .form-section {
-  padding: 2rem 4rem;
+  padding: 2rem;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 100%;
 }
 
 .form-container {
@@ -261,7 +276,7 @@ const handleSignup = async () => {
   }
 
   .image-section {
-    display: none;
+    display: none; /* Only hide image on smaller screens */
   }
 
   .form-section {
@@ -283,3 +298,4 @@ const handleSignup = async () => {
   }
 }
 </style>
+
