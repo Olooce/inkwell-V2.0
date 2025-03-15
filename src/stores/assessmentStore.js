@@ -52,7 +52,7 @@ export const assessmentStore = {
 
   async startAssessment() {
     try {
-      const response = await apiClient.post('/assessment/start_assessment')
+      const response = await apiClient.post('/assessments/start')
       console.log(response)
       state.currentSession.value = response.data.session_id
       state.questions.value = response.data.questions
@@ -74,7 +74,7 @@ export const assessmentStore = {
       const currentQuestion = this.getCurrentQuestion()
       if (!currentQuestion) throw new Error('No current question')
 
-      const response = await apiClient.post('/assessment/submit_answer', {
+      const response = await apiClient.post('/assessments/submit', {
         session_id: state.currentSession.value,
         question_id: currentQuestion.id,
         answer: answer
