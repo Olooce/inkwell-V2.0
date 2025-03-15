@@ -15,11 +15,14 @@ export const createAuthPayload = async (email, password) => {
   // Generate bcrypt hash
   const bcryptEncrypted = bcrypt.hashSync(concatenatedString, bcrypt.genSaltSync(10));
 
+  console.log(bcryptEncrypted);
+
   // Base64 encode bcrypt hash (only after hashing)
   const authhash = btoa(bcryptEncrypted);
 
   return {
     email,
-    authhash,
+    authhash, // Base64 encoded bcrypt hash
   };
+
 };

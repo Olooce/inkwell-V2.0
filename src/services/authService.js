@@ -12,7 +12,6 @@ export const authService = {
       const response = await apiClient.post('/auth/login', authPayload)
       const { access, refresh, user } = response.data
 
-      console.log('User logged in:', user)
       userStore.setUser(user)
 
       if (access) {
