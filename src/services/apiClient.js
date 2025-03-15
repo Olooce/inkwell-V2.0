@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const BASE_URL = 'https://366a-105-161-150-104.ngrok-free.app/api'
+export const BASE_URL = 'https://849a-2c0f-fe38-218d-5beb-ed10-2ac2-d416-ba7.ngrok-free.app/api'
 
 const apiClient = axios.create({
     baseURL: BASE_URL,
@@ -34,3 +34,4 @@ apiClient.interceptors.response.use(
 )
 
 export default apiClient
+
