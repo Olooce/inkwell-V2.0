@@ -196,7 +196,7 @@ const verifySentence = async () => {
 
   try {
     isLoading.value = true
-    const response = await storyStore.addSentence(storyId.value, userSentence.value)
+    const response = await storyStore.addSentence(userSentence.value)
 
     // Add sentence to list
     sentences.value.push(response.sentence)
