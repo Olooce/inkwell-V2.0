@@ -4,7 +4,7 @@ import { userStore } from '@/stores/userStore'
 export const authService = {
     async login(credentials) {
         try {
-            const response = await apiClient.post('/auth/login/', credentials)
+            const response = await apiClient.post('/auth/login', credentials)
             const { access, refresh, user } = response.data
 
            console.log(user);
@@ -29,7 +29,7 @@ export const authService = {
 
     async fetchUserInfo() {
         try {
-            const response = await apiClient.get('/auth/userInformation/')
+            const response = await apiClient.get('/auth/userInformation')
               console.log(response)
             // Parse and extract initial assessment status correctly
             const userData = {
@@ -60,7 +60,7 @@ export const authService = {
 
     async register(userData) {
         try {
-          const response = await apiClient.post('/auth/register/', {
+          const response = await apiClient.post('/auth/register', {
                 email: userData.email,
                 username: userData.email.split('@')[0],
                 password: userData.password,
