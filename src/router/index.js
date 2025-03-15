@@ -22,19 +22,19 @@ const routes = [
         component: () => import('@/views/LoginView.vue'),
         meta: { requiresAuth: false }
     },
- 
+
     {
         path: '/assessment',
         name: 'assessment',
         component: () => import('@/views/AssessmentIntro.vue'),
         meta: { requiresAuth: true }
       },
-      {
-        path: '/assessment/question',
-        name: 'assessment-question',
-        component: () => import('@/views/AssessmentQuestion.vue'),
-        meta: { requiresAuth: true }
-      },
+  {
+    path: '/assessment/question',
+    name: 'assessment-question',
+    component: () => import('@/views/AssessmentQuestion.vue'),
+    meta: { requiresAuth: true }
+  },
       {
         path: '/dashboard',
         name: 'dashboard',
@@ -93,13 +93,13 @@ const router = createRouter({
     history: createWebHistory(),
     routes
   })
-  
+
   // Initialize user store from localStorage
   userStore.loadStoredUser()
-  
+
   // Apply guards synchronously
   router.beforeEach(authGuard)
   router.beforeEach(assessmentGuard)
-  
-  
+
+
   export default router

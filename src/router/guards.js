@@ -21,15 +21,45 @@ export const authGuard = (to, from, next) => {
   next()
 }
 
+// export const assessmentGuard = (to, from, next) => {
+//   // Skip guard for these paths
+//   const bypassPaths = ['/', '/login', '/signup', '/assessment']
+//   if (bypassPaths.includes(to.path)) {
+//     next()
+//     return
+//   }
+//
+//   // Only check assessment for authenticated users
+//   if (authService.isAuthenticated()) {
+//     const hasCompletedAssessment = userStore.state.initial_assessment_completed.value
+//
+//     console.log('Assessment Guard Check:', {
+//       path: to.path,
+//       hasCompletedAssessment,
+//       userData: {
+//         isAuthenticated: userStore.state.isAuthenticated.value,
+//         initial_assessment_completed: userStore.state.initial_assessment_completed.value
+//       }
+//     })
+//
+//     if (!hasCompletedAssessment && to.path !== '/assessment') {
+//       next('/assessment')
+//       return
+//     }
+//     next()
+//   }
+//
+//   next()
+// }
+
 export const assessmentGuard = (to, from, next) => {
-  // Skip guard for these paths
-  const bypassPaths = ['/', '/login', '/signup', '/assessment','/assessment/question']
+  const bypassPaths = ['/', '/login', '/signup', '/assessment', '/assessment/question']
+
   if (bypassPaths.includes(to.path)) {
     next()
     return
   }
 
-  // Only check assessment for authenticated users
   if (authService.isAuthenticated()) {
     const hasCompletedAssessment = userStore.state.initial_assessment_completed.value
 
@@ -43,10 +73,11 @@ export const assessmentGuard = (to, from, next) => {
     })
 
     if (!hasCompletedAssessment && to.path !== '/assessment') {
-      next('/assessment')
-      return
+      return next('/assessment')
     }
+    next()
   }
 
   next()
 }
+
