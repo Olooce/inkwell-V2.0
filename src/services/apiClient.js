@@ -26,17 +26,30 @@ apiClient.interceptors.request.use(
 )
 
 apiClient.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response?.status === 403 || error.response?.status === 401) {
-            localStorage.removeItem('user-token')
-            localStorage.removeItem('user-data')
-            localStorage.clear()
-            window.location.href = '/login'
-        }
-        return Promise.reject(error)
+  (response) => response,
+  (error) => {
+    const originalRequest = error.config; // Extract config from error
+    const isAuthEndpoint = originalRequest?.url.includes("/auth/refresh") ||
+      originalRequest?.url.includes("/auth/login") ||
+      originalRequest?.url.includes("/auth/validate_otp") ||
+      originalRequest?.url.includes("/auth/logout") ||
+      originalRequest?.url.includes("/auth/reset_password");
+
+    if (isAuthEndpoint) {
+      return Promise.reject(error);
     }
-)
+
+    if (error.response?.status === 403 || error.response?.status === 401) {
+      localStorage.removeItem('user-token');
+      localStorage.removeItem('user-data');
+      localStorage.clear();
+      window.location.href = '/login';
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 
 apiClient.interceptors.response.use(
   (response) => {
