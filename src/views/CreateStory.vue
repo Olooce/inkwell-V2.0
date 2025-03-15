@@ -97,7 +97,7 @@
             <p class="correct-sentence">{{ correctedSentence }}</p>
             <img
               v-if="sentences[currentSentenceCount - 1]?.image_url"
-              :src="sentences[currentSentenceCount - 1]?.image_url"
+              :src= "currentSentenceImageUrl"
               alt="Generated Story Visual"
               class="popup-image"
             />
@@ -131,6 +131,7 @@ import { useRouter } from 'vue-router'
 import Navigation from '@/components/Navigation.vue'
 import { storyService } from '@/services/storyService'
 import { userStore } from '@/stores/userStore'
+import {BASE_URL} from '@/services/apiClient'
 
 const router = useRouter()
 const userName = computed(() => userStore.state.firstName.value)
@@ -211,6 +212,13 @@ const verifySentence = async () => {
     isLoading.value = false
   }
 }
+
+const currentSentenceImageUrl = computed(() => {
+  const sentence = sentences.value[currentSentenceCount.value - 1];
+  console.log(sentence.image_url);
+  console.log(`${BASE_URL}${sentence.image_url}`);
+  return sentence?.image_url ? `${BASE_URL}${sentence.image_url}` : '';
+});
 
 const completeStory = async () => {
   try {
