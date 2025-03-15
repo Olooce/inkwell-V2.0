@@ -81,7 +81,7 @@ const routes = [
       },
       {
         path: '/writing-tips/:id',
-        component: 'writing-tip-view',
+        name: 'writing-tip-view',
         component: () => import('@/views/WritingTipView.vue'),
         meta: { requiresAuth: true }
       },

@@ -77,7 +77,5 @@ export const assessmentGuard = (to, from, next) => {
     }
     next()
   }
-
-  next()
 }
 
