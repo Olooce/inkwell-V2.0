@@ -1,8 +1,10 @@
 import axios from 'axios'
 
-const BASE_URL = 'https://849a-2c0f-fe38-218d-5beb-ed10-2ac2-d416-ba7.ngrok-free.app//api'
+const BASE_URL = (import.meta.env.MODE === 'development' && import.meta.env.VITE_DEV_BASE_URL) ||
+  (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}/api` : '/api');
 
-export const IMAGE_URL = 'https://849a-2c0f-fe38-218d-5beb-ed10-2ac2-d416-ba7.ngrok-free.app/'
+export const IMAGE_URL = (import.meta.env.MODE === 'development' && import.meta.env.VITE_DEV_IMAGE_URL) ||
+  (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}/api` : '/api');
 
 const apiClient = axios.create({
     baseURL: BASE_URL,
