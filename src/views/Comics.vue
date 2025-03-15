@@ -1,55 +1,86 @@
 <template>
-    <div class="comics-layout">
-      <Navigation :user-name="userName" />
-      
-      <main class="comics-content">
-        <div class="comics-grid">
-          <div v-for="comic in comics" 
-               :key="comic.id" 
-               class="comic-card">
-            <img 
-              :src="comic.thumbnail" 
-              alt="Comic thumbnail" 
-              class="comic-thumbnail"
-            />
-            <div class="comic-info">
-              <h2 class="comic-title">{{ comic.title }}</h2>
-              <p class="comic-date">Done on: {{ comic.date }}</p>
-              <div class="comic-links">
-                <router-link :to="`/comics/${comic.id}`" class="action-link">View</router-link>
-                <span class="separator">|</span>
-                <a :href="comic.downloadUrl" class="action-link">Download</a>
-              </div>
+  <div class="comics-layout">
+    <Navigation :user-name="userName" />
+    
+    <main class="comics-content">
+      <div class="comics-grid">
+        <div v-for="comic in comics" 
+             :key="comic.id" 
+             class="comic-card">
+          <img 
+            :src="getImageUrl(comic.thumbnail)" 
+            :alt="comic.title" 
+            class="comic-thumbnail"
+          />
+          <div class="comic-info">
+            <h2 class="comic-title">{{ comic.title }}</h2>
+            <p class="comic-date">Done on: {{ comic.done_on }}</p>
+            <div class="comic-links">
+              <a 
+                :href="getImageUrl(comic.view_url)" 
+                class="action-link"
+                target="_blank"
+              >
+                View
+              </a>
+              <span class="separator">|</span>
+              <a 
+                :href="getImageUrl(comic.download_url)" 
+                class="action-link" 
+                download
+              >
+                Download
+              </a>
             </div>
           </div>
         </div>
-      </main>
-    </div>
-  </template>
+      </div>
+    </main>
+  </div>
+</template>
   
   <script setup>
-  import { ref } from 'vue'
   import Navigation from '@/components/Navigation.vue'
+  import { ref, onMounted } from 'vue'
+  import apiClient, { IMAGE_URL } from '@/services/apiClient'
   
   const userName = ref('Arabella')
+
+  const comics = ref([])
+
+
   
-  const comics = ref([
-    {
-      id: 1,
-      title: 'A Day at the Zoo',
-      date: '27/11/2024',
-    //   thumbnail: 'https://your-api.com/comics/thumbnails/day-at-zoo.png',
-    thumbnail: '/src/assets/images/comics/thumbnail-1.jpg',
-      downloadUrl: '#'
-    },
-    {
-      id: 2,
-      title: 'Horrible Experience',
-      date: '29/11/2024',
-      thumbnail: '/src/assets/images/comics/thumbnail-2.jpg',
-      downloadUrl: '#'
+  // Helper function to handle image URLs
+  const getImageUrl = (path) => {
+    if (!path) return ''
+    // Remove any leading slashes and combine with base URL
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path
+    return `${IMAGE_URL}/${cleanPath}`
+  }
+
+  // Fetch comics from API
+  const fetchComics = async () => {
+    try {
+      const response = await apiClient.get('/stories/comics/')
+      comics.value = response.data.map(comic => ({
+        ...comic,
+        // Remove domain from view_url if it exists
+        view_url: comic.view_url ? comic.view_url.replace(/^https?:\/\/[^\/]+/, '') : ''
+      }))
+      console.log('Fetched comics:', comics.value) // For debugging
+    } catch (error) {
+      console.error('Error fetching comics:', error)
+      comics.value = []
     }
-  ])
+  }
+
+  onMounted(() => {
+    fetchComics()
+  })
+
+
+  
+  
   </script>
   
   <style scoped>
