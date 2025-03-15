@@ -2,16 +2,16 @@
 <template>
   <div class="story-picture-layout">
     <Navigation :user-name="userName" />
-    
+
     <main class="story-picture-content">
       <!-- Story Progress -->
       <div class="story-progress">
         <div class="progress-indicator">
-          <div 
-            v-for="(sentence, index) in sentences" 
+          <div
+            v-for="(sentence, index) in sentences"
             :key="index"
             class="progress-dot"
-            :class="{ 
+            :class="{
               'active': index === currentIndex,
               'completed': index < currentIndex
             }"
@@ -35,8 +35,8 @@
       <!-- Image Display -->
       <div class="image-container">
         <div v-if="currentSentence.image_url" class="image-wrapper">
-          <img 
-            :src="currentSentence.image_url" 
+          <img
+            :src="currentSentence.image_url"
             :alt="currentSentence.corrected_text"
             class="story-image"
             @load="handleImageLoad"
@@ -49,25 +49,25 @@
 
       <!-- Navigation Buttons -->
       <div class="navigation-buttons">
-        <button 
+        <button
           v-if="currentIndex > 0"
-          @click="previousSentence" 
+          @click="previousSentence"
           class="nav-button previous"
         >
           Previous
         </button>
-        
-        <button 
+
+        <button
           v-if="currentIndex < sentences.length - 1"
-          @click="nextSentence" 
+          @click="nextSentence"
           class="nav-button next"
         >
           Next
         </button>
-        
-        <button 
+
+        <button
           v-else
-          @click="completeStory" 
+          @click="completeStory"
           class="complete-button"
           :disabled="isCompleting"
         >
@@ -101,7 +101,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Navigation from '@/components/Navigation.vue'
-import { storyService } from '@/services/storyService'
+import { storyStore } from '@/stores/storyStore.js'
 import { userStore } from '@/stores/userStore'
 
 const router = useRouter()
@@ -115,7 +115,7 @@ const showCompletionPopup = ref(false)
 const imageLoaded = ref(false)
 
 // Computed
-const currentSentence = computed(() => 
+const currentSentence = computed(() =>
   sentences.value[currentIndex.value] || {}
 )
 
@@ -145,7 +145,7 @@ const handleImageLoad = () => {
 const completeStory = async () => {
   try {
     isCompleting.value = true
-    const response = await storyService.completeStory(sentences.value[0].story_id)
+    const response = await storyStore.completeStory(sentences.value[0].story_id)
     showCompletionPopup.value = true
   } catch (error) {
     alert(error.message)
