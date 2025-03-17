@@ -218,7 +218,7 @@ const verifySentence = async () => {
     // Clear input
     userSentence.value = ''
   } catch (error) {
-    alert(error.message)
+    toast.error(error.message, { timeout: 3000 })
   } finally {
     isLoading.value = false
   }
@@ -247,7 +247,7 @@ const completeStory = async () => {
     localStorage.removeItem('currentSentenceCount')
     localStorage.removeItem('sentences')
   } catch (error) {
-    alert(error.message)
+    toast.error(error.message, { timeout: 3000 })
   } finally {
     isLoading.value = false
   }
