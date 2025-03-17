@@ -71,7 +71,7 @@ export const assessmentStore = {
 
   async submitAnswer(answer) {
     try {
-      const currentQuestion = this.getCurrentQuestion()
+      const vcurrentQuestion = this.getCurrentQuestion()
       if (!currentQuestion) throw new Error('No current question')
 
       const response = await apiClient.post('/assessments/submit', {
