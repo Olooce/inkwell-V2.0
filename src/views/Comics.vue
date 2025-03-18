@@ -70,7 +70,7 @@ const getImageUrl = (path) => {
 // Fetch comics from API
 const fetchComics = async () => {
   try {
-    const response = await apiClient.get('/stories/comics/')
+    const response = await apiClient.get('/stories/comics')
     comics.value = response.data.map(comic => ({
       ...comic,
       view_url: comic.view_url
