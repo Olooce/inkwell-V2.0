@@ -26,11 +26,7 @@
 <!--                View-->
 <!--              </a>-->
 <!--              <span class="separator">|</span>-->
-              <a
-                :href="getDownloadUrl(comic.download_url)"
-                class="action-link"
-                download
-              >
+              <a @click.prevent="downloadComic(comic.download_url)" class="action-link">
                 Download
               </a>
             </div>
@@ -68,19 +64,53 @@ const getImageUrl = (path) => {
   return `${IMAGE_URL}/${cleanPath}`
 }
 
-const getDownloadUrl = (path) => {
-  if (!path) return ''
-  let cleanPath = path.startsWith('/') ? path.slice(1) : path
+// const getDownloadUrl = (path) => {
+//   if (!path) return ''
+//   let cleanPath = path.startsWith('/') ? path.slice(1) : path
+//
+//   // Ensure we don't duplicate "comics/"
+//   if (!cleanPath.startsWith('comics/')) {
+//     cleanPath = `comics/${cleanPath}`
+//   }
+//
+//   return `${BASE_URL}/download/${cleanPath}` // Use backend URL
+// }
 
-  // Ensure we don't duplicate "comics/"
-  if (!cleanPath.startsWith('comics/')) {
-    cleanPath = `comics/${cleanPath}`
+
+const downloadComic = async (path) => {
+  if (!path) return
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path
+  const downloadUrl = `${BASE_URL}/download/${cleanPath}`
+
+  try {
+    const response = await fetch(downloadUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`, // Ensure authentication if required
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.statusText}`)
+    }
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+
+    // Create a temporary `<a>` tag and simulate a click to trigger the download
+    const a = document.createElement('a')
+    a.href = url
+    a.download = cleanPath.split('/').pop() // Extract filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+
+    // Revoke the object URL to free up memory
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Download error:', error)
   }
-
-  return `${BASE_URL}/download/${cleanPath}` // Use backend URL
 }
-
-
 
 
 // Fetch comics from API
