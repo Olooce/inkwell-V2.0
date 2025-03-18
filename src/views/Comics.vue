@@ -55,6 +55,7 @@ import Navigation from '@/components/Navigation.vue'
 import { ref, onMounted } from 'vue'
 import apiClient, { IMAGE_URL } from '@/services/apiClient'
 import { useRouter } from 'vue-router'
+import { BASE_URL } from '@/services/apiClient'
 
 const userName = ref('Arabella')
 const comics = ref([])
@@ -69,9 +70,17 @@ const getImageUrl = (path) => {
 
 const getDownloadUrl = (path) => {
   if (!path) return ''
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path
-  return `${window.location.origin}/${cleanPath}` // Serve from the same static domain
+  let cleanPath = path.startsWith('/') ? path.slice(1) : path
+
+  // Ensure we don't duplicate "comics/"
+  if (!cleanPath.startsWith('comics/')) {
+    cleanPath = `comics/${cleanPath}`
+  }
+
+  return `${BASE_URL}/download/${cleanPath}` // Use backend URL
 }
+
+
 
 
 // Fetch comics from API
