@@ -27,7 +27,7 @@
 <!--              </a>-->
 <!--              <span class="separator">|</span>-->
               <a
-                :href="getImageUrl(comic.download_url)"
+                :href="getDownloadUrl(comic.download_url)"
                 class="action-link"
                 download
               >
@@ -66,6 +66,13 @@ const getImageUrl = (path) => {
   const cleanPath = path.startsWith('/') ? path.slice(1) : path
   return `${IMAGE_URL}/${cleanPath}`
 }
+
+const getDownloadUrl = (path) => {
+  if (!path) return ''
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path
+  return `${window.location.origin}/${cleanPath}` // Serve from the same static domain
+}
+
 
 // Fetch comics from API
 const fetchComics = async () => {
