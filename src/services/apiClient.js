@@ -17,7 +17,7 @@ const apiClient = axios.create({
     'ngrok-skip-browser-warning': 'true'
   },
   withCredentials: true,
-  timeout: 15000,
+  // timeout: 15000,
 });
 
 let isRefreshing = false;
