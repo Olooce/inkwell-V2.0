@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'vue3-toastify'
 
 const BASE_URL = import.meta.env.MODE === 'development' && import.meta.env.VITE_DEV_BASE_URL
   ? import.meta.env.VITE_DEV_BASE_URL
@@ -79,7 +80,7 @@ apiClient.interceptors.response.use(
         }
       }
     } catch (refreshError) {
-      console.error(refreshError);
+     toast.error(refreshError.message);
     } finally {
       isRefreshing = false;
     }
@@ -93,7 +94,7 @@ const handleLogout = async () => {
   try {
     await apiClient.post("/auth/logout");
   } catch (logoutError) {
-    console.error(logoutError);
+   toast.error(logoutError.message);
   } finally {
     localStorage.clear();
     window.location.href = "/login";
