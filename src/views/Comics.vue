@@ -80,9 +80,6 @@ const getDownloadUrl = (path) => {
   return `${BASE_URL}/download/${cleanPath}`
 }
 
-
-
-
 // Fetch comics from API
 const fetchComics = async () => {
   try {
