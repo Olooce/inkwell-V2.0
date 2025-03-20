@@ -57,6 +57,7 @@
 import { ref, onMounted } from 'vue'
 import Navigation from '@/components/Navigation.vue'
 import apiClient from '@/services/apiClient'
+import { toast } from 'vue3-toastify'
 
 const userName = ref('Arabella')
 const loading = ref(true)
@@ -73,7 +74,7 @@ const fetchProgress = async () => {
     initialProgress.value = response.data.initial_progress
     currentProgress.value = response.data.current_progress
   } catch (err) {
-    console.error('Error fetching progress:', err)
+   toast.error(err.message)
     error.value = 'Failed to load progress data. Please try again later.'
   } finally {
     loading.value = false
@@ -96,8 +97,7 @@ const downloadInitialReport = async () => {
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    console.error('Error downloading initial report:', err)
-    alert('Failed to download report. Please try again later.')
+    toast.error(err.message)
   }
 }
 
@@ -116,8 +116,7 @@ const downloadProgressReport = async () => {
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    console.error('Error downloading progress report:', err)
-    alert('Failed to download report. Please try again later.')
+    toast.error(err.message)
   }
 }
 
