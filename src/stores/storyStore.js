@@ -1,4 +1,5 @@
 import apiClient from '../services/apiClient.js'
+import { toast } from 'vue3-toastify'
 
 export const storyStore = {
   state: {
@@ -17,7 +18,7 @@ export const storyStore = {
         const parsedState = JSON.parse(storedState)
         this.state = { ...this.state, ...parsedState }
       } catch (error) {
-        console.error('Error loading state from localStorage:', error)
+        toast.error(error.message)
       }
     }
   },
@@ -43,7 +44,7 @@ export const storyStore = {
       return response.data
     } catch (error) {
       this.state.error = error.message
-      console.error('Start story error:', error.response?.data || error)
+      toast.error(error.message)
       throw new Error(error.response?.data?.error || 'Failed to start story')
     }
   },
@@ -67,7 +68,7 @@ export const storyStore = {
       return response.data
     } catch (error) {
       this.state.error = error.message
-      console.error('Add sentence error:', error.response?.data || error)
+      toast.error(error.message)
       throw new Error(error.response?.data?.error || 'Failed to add sentence')
     }
   },
@@ -88,7 +89,7 @@ export const storyStore = {
       return response.data
     } catch (error) {
       this.state.error = error.message
-      console.error('Complete story error:', error.response?.data || error)
+      toast.error(error.message)
       throw new Error(error.response?.data?.error || 'Failed to complete story')
     }
   },
