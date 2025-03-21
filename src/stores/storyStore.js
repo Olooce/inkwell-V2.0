@@ -101,7 +101,7 @@ export const storyStore = {
       return response.data
     } catch (error) {
       this.state.error = error.message
-      console.error('Get progress error:', error.response?.data || error)
+      toast.error(error.message)
       throw new Error(error.response?.data?.error || 'Failed to get progress')
     }
   },
@@ -113,7 +113,7 @@ export const storyStore = {
       return response.data
     } catch (error) {
       this.state.error = error.message
-      console.error('Get stories error:', error.response?.data || error)
+      toast.error(error.message)
       throw new Error(error.response?.data?.error || 'Failed to get stories')
     }
   },

@@ -79,6 +79,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '@/services/authService'
+import { toast } from 'vue3-toastify'
 
 
 const router = useRouter()
@@ -130,8 +131,7 @@ const handleLogin = async () => {
       router.push('/assessment')
     }
   } catch (err) {
-    error.value = err.message || 'Login failed. Please try again.'
-    console.error('Login error:', err)
+    toast.error(err.message)
   } finally {
     loading.value = false
   }
