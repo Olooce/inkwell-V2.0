@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { authGuard,assessmentGuard } from './guards'
-import { userStore } from '@/stores/userStore' // Import at the top
+import { userStore } from '@/stores/userStore'
 
 
 const routes = [
@@ -48,31 +48,12 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
-        path: '/story-picture',
-        name: 'story-picture',
-        component: () => import('@/views/StoryPicture.vue'),
-        meta: { requiresAuth: true },
-        beforeEnter: (to, from, next) => {
-          // Only allow access from create-story
-          if (from.name === 'create-story') {
-            next()
-          } else {
-            next('/create-story')
-          }
-        }
-      },
-      {
         path: '/comics',
         name: 'comics',
         component: () => import('@/views/Comics.vue'),
         meta: { requiresAuth: true }
       },
-      {
-        path: '/comics/:id',
-        name: 'comic-detail',
-        component: () => import('@/views/ComicDetail.vue'),
-        meta: { requiresAuth: true }
-      },
+
       {
         path: '/writing-tips',
         name: 'writing-tips',

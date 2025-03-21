@@ -41,6 +41,7 @@ import { useRouter } from 'vue-router'
 import Navigation from '@/components/Navigation.vue'
 import { userStore } from '@/stores/userStore'
 import { assessmentStore } from '@/stores/assessmentStore'
+import { toast } from 'vue3-toastify'
 
 const router = useRouter()
 const userName = ref(userStore.state.firstName.value || 'Guest')
@@ -61,9 +62,9 @@ const startAssessment = async () => {
     assessmentStore.state.currentQuestionIndex.value = 0
 
     // Navigate to first question
-    router.push('/assessment/question')
+    await router.push('/assessment/question')
   } catch (err) {
-    toast.error(error.message)
+    toast.error(err.message)
     error.value = err.message || 'Failed to start assessment'
   } finally {
     loading.value = false

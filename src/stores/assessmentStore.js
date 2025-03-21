@@ -75,7 +75,7 @@ export const assessmentStore = {
       if (!currentQuestion) throw new Error('No current question')
 
       const response = await apiClient.post('/assessments/submit', {
-        session_id: state.currentSession.value,
+        session_id: state.currentSession,
         question_id: currentQuestion.id,
         answer: answer
       })
@@ -83,7 +83,7 @@ export const assessmentStore = {
       state.answers.value = [...state.answers.value, {
         questionId: currentQuestion.id,
         answer: answer,
-        isCorrect: response.data.is_correct,
+        isCorrect: response.data.isCorrect,
         feedback: response.data.feedback
       }]
 

@@ -115,6 +115,7 @@ import { useRouter } from 'vue-router'
 import Navigation from '@/components/Navigation.vue'
 import { assessmentStore } from '@/stores/assessmentStore'
 import { userStore } from '@/stores/userStore'
+import { toast } from 'vue3-toastify'
 
 const router = useRouter()
 const userName = computed(() => {
@@ -146,7 +147,7 @@ const submitAnswer = async () => {
   try {
     const result = await assessmentStore.submitAnswer(userAnswer.value)
     feedback.value = {
-      isCorrect: result.is_correct,
+      isCorrect: result.isCorrect,
       message: result.feedback
     }
 

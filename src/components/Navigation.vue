@@ -3,7 +3,7 @@
     <router-link to="/dashboard" class="logo">
       <h1 class="logo-text">inkwell</h1>
     </router-link>
-    
+
     <div class="user-section">
       <span v-if="isAuthenticated" class="greeting">Hi, {{ displayName }}!</span>
       <div v-if="isAuthenticated" class="menu-wrapper">
@@ -12,7 +12,7 @@
             <span class="text-white">{{ userInitials }}</span>
           </v-avatar>
         </button>
-        
+
         <div v-if="showMenu" class="dropdown-menu">
           <button class="menu-item" @click="handleLogout">
             Logout
@@ -24,7 +24,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { userStore } from '@/stores/userStore'
 import { authService } from '@/services/authService'
@@ -44,7 +44,7 @@ const displayName = computed(() => {
 const userInitials = computed(() => {
   const firstName = userStore.state.firstName.value
   const lastName = userStore.state.lastName.value
-  
+
   if (firstName && lastName) {
     return `${firstName[0]}${lastName[0]}`.toUpperCase()
   } else if (firstName) {
@@ -164,11 +164,11 @@ onMounted(() => {
   .navbar {
     padding: 0 1rem;
   }
-  
+
   .greeting {
     font-size: 1rem;
   }
-  
+
   .logo-text {
     font-size: 1.5rem;
   }

@@ -1,6 +1,7 @@
 import apiClient from './apiClient'
 import { userStore } from '@/stores/userStore'
 import { createAuthPayload } from '@/utils/auth_utils'
+import { toast } from 'vue3-toastify'
 
 export const authService = {
   async login(email, password) {

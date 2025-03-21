@@ -191,7 +191,6 @@ const handleSignup = async () => {
 
 .error-message {
   color: #ff4444;
-  margin-bottom: 1rem;
   text-align: center;
   font-family: 'Fredoka', sans-serif;
   padding: 1rem;

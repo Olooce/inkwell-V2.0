@@ -56,6 +56,7 @@ import { ref, onMounted } from 'vue'
 import apiClient, { IMAGE_URL } from '@/services/apiClient'
 import { useRouter } from 'vue-router'
 import { BASE_URL } from '@/services/apiClient'
+import { toast } from 'vue3-toastify'
 
 const userName = ref('Arabella')
 const comics = ref([])
@@ -87,7 +88,7 @@ const fetchComics = async () => {
     comics.value = response.data.map(comic => ({
       ...comic,
       view_url: comic.view_url
-        ? comic.view_url.replace(/^https?:\/\/[^\/]+/, '')
+        ? comic.view_url.replace(/^https?:\/\/[^/]+/, '')
         : ''
     }))
   } catch (error) {
@@ -243,6 +244,6 @@ onMounted(() => {
   }
 
   .create-story-btn:active {
-    background-color: var(--color-blue);
+    background-color: var(--color-light-blue);
   }
   </style>
