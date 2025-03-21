@@ -6,7 +6,7 @@
       <div v-if="loading" class="loading">
         Loading progress data...
       </div>
-      
+
       <div v-else-if="error" class="error">
         {{ error }}
       </div>
@@ -57,6 +57,7 @@
 import { ref, onMounted } from 'vue'
 import Navigation from '@/components/Navigation.vue'
 import apiClient from '@/services/apiClient'
+import { toast } from 'vue3-toastify'
 
 const userName = ref('Arabella')
 const loading = ref(true)
@@ -69,11 +70,11 @@ const fetchProgress = async () => {
   try {
     loading.value = true
     error.value = null
-    const response = await apiClient.get('/progress/overview/')
+    const response = await apiClient.get('/writing-skills/analysis/overview')
     initialProgress.value = response.data.initial_progress
     currentProgress.value = response.data.current_progress
   } catch (err) {
-    console.error('Error fetching progress:', err)
+   toast.error(err.message)
     error.value = 'Failed to load progress data. Please try again later.'
   } finally {
     loading.value = false
@@ -83,7 +84,7 @@ const fetchProgress = async () => {
 // Download reports
 const downloadInitialReport = async () => {
   try {
-    const response = await apiClient.get('/progress/download_report/?type=initial', {
+    const response = await apiClient.get('/writing-skills/analysis/download_report/?type=initial', {
       responseType: 'blob'
     })
     const blob = new Blob([response.data], { type: 'application/pdf' })
@@ -96,14 +97,13 @@ const downloadInitialReport = async () => {
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    console.error('Error downloading initial report:', err)
-    alert('Failed to download report. Please try again later.')
+    toast.error(err.message)
   }
 }
 
 const downloadProgressReport = async () => {
   try {
-    const response = await apiClient.get('/progress/download_report/?type=current', {
+    const response = await apiClient.get('/writing-skills/analysis/download_report/?type=current', {
       responseType: 'blob'
     })
     const blob = new Blob([response.data], { type: 'application/pdf' })
@@ -116,8 +116,7 @@ const downloadProgressReport = async () => {
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    console.error('Error downloading progress report:', err)
-    alert('Failed to download report. Please try again later.')
+    toast.error(err.message)
   }
 }
 

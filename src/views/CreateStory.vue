@@ -114,6 +114,8 @@ import Navigation from '@/components/Navigation.vue'
 import { storyStore } from '@/stores/storyStore.js'
 import { userStore } from '@/stores/userStore'
 import { IMAGE_URL } from '@/services/apiClient'
+import { toast } from "vue3-toastify";
+import "vue3-toastify/dist/index.css";
 
 const router = useRouter()
 const userName = computed(() => userStore.state.firstName.value)
@@ -184,8 +186,10 @@ const startStory = async () => {
     localStorage.setItem('maxSentences', maxSentences.value)
     localStorage.setItem('currentSentenceCount', currentSentenceCount.value)
     localStorage.setItem('sentences', JSON.stringify(sentences.value))
+
+    toast.success("Story started successfully!", { timeout: 3000 })
   } catch (error) {
-    alert(error.message)
+    toast.error(error.message, { timeout: 3000 })
   } finally {
     isLoading.value = false
   }
@@ -214,7 +218,7 @@ const verifySentence = async () => {
     // Clear input
     userSentence.value = ''
   } catch (error) {
-    alert(error.message)
+    toast.error(error.message, { timeout: 3000 })
   } finally {
     isLoading.value = false
   }
@@ -243,7 +247,7 @@ const completeStory = async () => {
     localStorage.removeItem('currentSentenceCount')
     localStorage.removeItem('sentences')
   } catch (error) {
-    alert(error.message)
+    toast.error(error.message, { timeout: 3000 })
   } finally {
     isLoading.value = false
   }
