@@ -90,9 +90,8 @@ const fetchComics = async () => {
         ? comic.view_url.replace(/^https?:\/\/[^\/]+/, '')
         : ''
     }))
-    console.log('Fetched comics:', comics.value) // For debugging
   } catch (error) {
-    console.error('Error fetching comics:', error)
+    toast.error(error.message);
     comics.value = []
   }
 }

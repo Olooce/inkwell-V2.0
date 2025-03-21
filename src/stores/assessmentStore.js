@@ -54,7 +54,6 @@ export const assessmentStore = {
   async startAssessment() {
     try {
       const response = await apiClient.post('/assessments/start')
-      console.log(response)
       state.currentSession.value = response.data.session_id
       state.questions.value = response.data.questions
       state.currentQuestionIndex.value = 0

@@ -23,7 +23,7 @@ export const authService = {
       }
       throw new Error('Login failed - no access token received')
     } catch (error) {
-      console.error('Login error:', error.response?.data || error)
+      toast.error(error.message)
       throw new Error(error.response?.data?.detail || 'Login failed')
     }
   },

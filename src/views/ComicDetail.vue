@@ -76,6 +76,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Navigation from '@/components/Navigation.vue'
 import { userStore } from '@/stores/userStore'
+import { toast } from 'vue3-toastify/index'
 
 const route = useRoute()
 const comic = ref(null)
@@ -93,7 +94,7 @@ onMounted(async () => {
       thumbnail: '/path/to/thumbnail.jpg'
     }
   } catch (error) {
-    console.error('Error fetching comic:', error)
+    toast.error(error.message)
   }
 })
 
@@ -114,7 +115,7 @@ const copyLink = async () => {
     alert('Link copied to clipboard!')
     showShareDialog.value = false
   } catch (error) {
-    console.error('Failed to copy link:', error)
+    toast.error(error.message)
   }
 }
 </script>
