@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { toast } from 'vue3-toastify'
 
 const state = {
   email: ref(''),
@@ -21,13 +22,13 @@ export const userStore = {
     localStorage.setItem('user-data', JSON.stringify(userData))
 
 
-    console.log('User store updated:', {
-      email: state.email.value,
-      firstName: state.firstName.value,
-      lastName: state.lastName.value,
-      isAuthenticated: state.isAuthenticated.value,
-      initial_assessment_completed: state.initial_assessment_completed.value
-    })
+    // console.log('User store updated:', {
+    //   email: state.email.value,
+    //   firstName: state.firstName.value,
+    //   lastName: state.lastName.value,
+    //   isAuthenticated: state.isAuthenticated.value,
+    //   initial_assessment_completed: state.initial_assessment_completed.value
+    // })
   },
 
   clearUser() {
@@ -49,7 +50,7 @@ export const userStore = {
           initial_assessment_completed: userData.initial_assessment_completed === true
         })
       } catch (error) {
-        console.error('Error loading stored user data:', error)
+        toast.error(error.message)
         this.clearUser()
       }
     }

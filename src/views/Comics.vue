@@ -27,7 +27,7 @@
 <!--              </a>-->
 <!--              <span class="separator">|</span>-->
               <a
-                :href="getImageUrl(comic.download_url)"
+                :href="getDownloadUrl(comic.download_url)"
                 class="action-link"
                 download
               >
@@ -55,6 +55,7 @@ import Navigation from '@/components/Navigation.vue'
 import { ref, onMounted } from 'vue'
 import apiClient, { IMAGE_URL } from '@/services/apiClient'
 import { useRouter } from 'vue-router'
+import { BASE_URL } from '@/services/apiClient'
 
 const userName = ref('Arabella')
 const comics = ref([])
@@ -67,10 +68,22 @@ const getImageUrl = (path) => {
   return `${IMAGE_URL}/${cleanPath}`
 }
 
+const getDownloadUrl = (path) => {
+  if (!path) return ''
+  let cleanPath = path.startsWith('/') ? path.slice(1) : path
+
+  // Ensure we don't duplicate "comics/"
+  if (!cleanPath.startsWith('comics/')) {
+    cleanPath = `comics/${cleanPath}`
+  }
+
+  return `${BASE_URL}/download/${cleanPath}`
+}
+
 // Fetch comics from API
 const fetchComics = async () => {
   try {
-    const response = await apiClient.get('/stories/comics/')
+    const response = await apiClient.get('/stories/comics')
     comics.value = response.data.map(comic => ({
       ...comic,
       view_url: comic.view_url

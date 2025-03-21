@@ -1,4 +1,5 @@
 import apiClient from '../services/apiClient.js'
+import { toast } from 'vue3-toastify'
 
 export const storyStore = {
   state: {
@@ -17,7 +18,7 @@ export const storyStore = {
         const parsedState = JSON.parse(storedState)
         this.state = { ...this.state, ...parsedState }
       } catch (error) {
-        console.error('Error loading state from localStorage:', error)
+        toast.error(error.message)
       }
     }
   },
@@ -30,7 +31,7 @@ export const storyStore = {
   // Method to start the story
   async startStory(title) {
     try {
-      const response = await apiClient.post('/stories/start_story/', { title })
+      const response = await apiClient.post('/stories/start_story', { title })
       this.state.currentStory = { id: response.data.story_id, title, guidance: response.data.guidance }
       this.state.storyStatus = 'in_progress'
       this.state.sentences = []
@@ -43,7 +44,7 @@ export const storyStore = {
       return response.data
     } catch (error) {
       this.state.error = error.message
-      console.error('Start story error:', error.response?.data || error)
+      toast.error(error.message)
       throw new Error(error.response?.data?.error || 'Failed to start story')
     }
   },
@@ -53,7 +54,7 @@ export const storyStore = {
     try {
       if (!this.state.currentStory) throw new Error('No current story found')
 
-      const response = await apiClient.post(`/stories/${this.state.currentStory.id}/add_sentence/`, {
+      const response = await apiClient.post(`/stories/${this.state.currentStory.id}/add_sentence`, {
         sentence
       })
 
@@ -67,7 +68,7 @@ export const storyStore = {
       return response.data
     } catch (error) {
       this.state.error = error.message
-      console.error('Add sentence error:', error.response?.data || error)
+      toast.error(error.message)
       throw new Error(error.response?.data?.error || 'Failed to add sentence')
     }
   },
@@ -77,7 +78,7 @@ export const storyStore = {
     try {
       if (!this.state.currentStory) throw new Error('No current story found')
 
-      const response = await apiClient.post(`/stories/${this.state.currentStory.id}/complete_story/`)
+      const response = await apiClient.post(`/stories/${this.state.currentStory.id}/complete_story`)
 
       this.state.storyStatus = 'completed'
       this.state.error = null
@@ -88,7 +89,7 @@ export const storyStore = {
       return response.data
     } catch (error) {
       this.state.error = error.message
-      console.error('Complete story error:', error.response?.data || error)
+      toast.error(error.message)
       throw new Error(error.response?.data?.error || 'Failed to complete story')
     }
   },
@@ -96,11 +97,11 @@ export const storyStore = {
   // Method to fetch the progress of the story
   async getProgress() {
     try {
-      const response = await apiClient.get('/stories/progress/')
+      const response = await apiClient.get('/stories/progress')
       return response.data
     } catch (error) {
       this.state.error = error.message
-      console.error('Get progress error:', error.response?.data || error)
+      toast.error(error.message)
       throw new Error(error.response?.data?.error || 'Failed to get progress')
     }
   },
@@ -108,11 +109,11 @@ export const storyStore = {
   // Method to get all the stories
   async getAllStories() {
     try {
-      const response = await apiClient.get('/stories/')
+      const response = await apiClient.get('/stories')
       return response.data
     } catch (error) {
       this.state.error = error.message
-      console.error('Get stories error:', error.response?.data || error)
+      toast.error(error.message)
       throw new Error(error.response?.data?.error || 'Failed to get stories')
     }
   },

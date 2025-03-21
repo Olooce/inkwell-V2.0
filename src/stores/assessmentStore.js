@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import apiClient from '@/services/apiClient'
+import { toast } from 'vue3-toastify'
 
 const state = {
   currentSession: ref(null),
@@ -22,7 +23,7 @@ export const assessmentStore = {
         state.currentQuestionIndex.value = parsedState.currentQuestionIndex
         state.answers.value = parsedState.answers
       } catch (error) {
-        console.error('Error loading persisted assessment data:', error)
+        toast.error(error.message)
         this.resetAssessment()  // If error occurs, reset to initial state
       }
     }
@@ -52,7 +53,7 @@ export const assessmentStore = {
 
   async startAssessment() {
     try {
-      const response = await apiClient.post('/assessment/start_assessment/')
+      const response = await apiClient.post('/assessments/start')
       console.log(response)
       state.currentSession.value = response.data.session_id
       state.questions.value = response.data.questions
@@ -64,7 +65,7 @@ export const assessmentStore = {
 
       return response.data
     } catch (error) {
-      console.error('Start assessment error:', error)
+      toast.error(error.message)
       throw error
     }
   },
@@ -74,7 +75,7 @@ export const assessmentStore = {
       const currentQuestion = this.getCurrentQuestion()
       if (!currentQuestion) throw new Error('No current question')
 
-      const response = await apiClient.post('/assessment/submit_answer/', {
+      const response = await apiClient.post('/assessments/submit', {
         session_id: state.currentSession.value,
         question_id: currentQuestion.id,
         answer: answer
@@ -92,7 +93,7 @@ export const assessmentStore = {
 
       return response.data
     } catch (error) {
-      console.error('Submit answer error:', error)
+      toast.error(error.message)
       throw error
     }
   },
