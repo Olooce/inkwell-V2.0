@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.23",
-    "axios": "^1.7.9",
+    "axios": "^1.8.2",
     "bcryptjs": "^3.0.2",
     "lodash": "^4.17.21",
     "vue": "^3.5.13",
@@ -29,7 +29,7 @@
     "eslint-plugin-vue": "^9.30.0",
     "prettier": "^3.3.3",
     "sass": "^1.81.0",
-    "vite": "^6.0.1",
+    "vite": "^6.2.2",
     "vite-plugin-vue-devtools": "^7.6.5"
   }
 }
