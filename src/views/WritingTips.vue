@@ -14,39 +14,29 @@
       </div>
 
       <div v-else-if="writingTips.length === 0" class="no-data">
-        No completed stories with analysis available.
+        No completed stories available.
       </div>
 
       <div v-else class="tips-grid">
-        <div v-for="story in writingTips"
-             :key="story.story_id"
-             class="tip-card">
-          <div class="tip-content">
-            <div class="tip-info">
-              <h2 class="tip-title">{{ story.title }}</h2>
-              <p class="analysis-text">{{ story.analysis }}</p>
-              <ul class="tip-list">
-                <li v-for="(tip, index) in story.tips" :key="index">
-                  {{ tip }}
-                </li>
-              </ul>
-            </div>
-            <router-link :to="`/writing-tips/${key}`" class="view-link">
-              View
-            </router-link>
-          </div>
+        <div v-for="story in writingTips" :key="story.story_id" class="tip-card">
+          <h2 class="tip-title">{{ story.title }}</h2>
+          <button class="view-link" @click="viewWritingTip(story)">
+            View Writing Tips
+          </button>
         </div>
       </div>
     </main>
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted } from 'vue'
 import Navigation from '@/components/Navigation.vue'
 import apiClient from '@/services/apiClient'
 import { toast } from 'vue3-toastify'
+import { useRouter } from 'vue-router'
+import { storyStore } from '@/stores/storyStore'
 
+const router = useRouter()
 const userName = ref('Arabella')
 const writingTips = ref([])
 const loading = ref(true)
@@ -64,6 +54,13 @@ const fetchWritingTips = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const viewWritingTip = (story) => {
+  // Save the selected writing tip into the store.
+  storyStore.setCurrentStory(story)
+  // Navigate to the detail view.
+  router.push({ name: 'writing-tip-view', params: { id: story.story_id } })
 }
 
 onMounted(() => {
@@ -122,47 +119,30 @@ onMounted(() => {
   background-color: rgba(6, 143, 255, 0.18);
   border-radius: 16px;
   padding: 1.5rem 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  max-width: 600px;
-  justify-self: stretch;
-}
-
-.tip-content {
-  width: 100%;
-}
-
-.tip-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  text-align: center;
 }
 
 .tip-title {
   font-family: 'Fredoka', sans-serif;
   font-size: 1.5rem;
   color: var(--color-black);
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
 }
 
-.analysis-text {
-  font-size: 1rem;
-  color: #444;
-  margin-bottom: 0.75rem;
-}
-
-.tip-list {
-  list-style-type: disc;
-  margin-left: 1.2rem;
-  padding-left: 1rem;
+.view-link {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: var(--color-light-blue);
+  color: var(--color-white);
+  border-radius: 8px;
+  text-decoration: none;
+  font-family: 'Fredoka', sans-serif;
 }
 
 @media (max-width: 1024px) {
   .writing-tips-content {
     padding: 2rem;
   }
-
   .tips-grid {
     gap: 2rem;
   }
@@ -172,7 +152,6 @@ onMounted(() => {
   .tips-grid {
     grid-template-columns: 1fr;
   }
-
   .writing-tips-content {
     padding: 1rem;
   }

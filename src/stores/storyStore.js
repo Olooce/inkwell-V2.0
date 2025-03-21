@@ -128,5 +128,20 @@ export const storyStore = {
 
     // Clear the state from localStorage
     localStorage.removeItem('story-state')
+  },
+
+  // New method: Set the current story (when navigating to the Writing Tip view)
+  setCurrentStory(story) {
+    this.state.currentStory = story
+    this.state.sentences = []
+    this.state.storyStatus = 'not_started'
+    this.state.currentSentenceCount = 0
+    this.state.error = null
+    this.saveStateToLocalStorage()
+  },
+
+  // New method: Get the current story
+  getCurrentStory() {
+    return this.state.currentStory
   }
 }
