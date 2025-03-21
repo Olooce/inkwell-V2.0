@@ -158,7 +158,7 @@ const submitAnswer = async () => {
       // Directly continue to the next question or completion
       handleContinue()
     } else {
-         console.error('Error submitting answer:', error)
+      toast.error(error.message)
     }
   } finally {
     loading.value = false
