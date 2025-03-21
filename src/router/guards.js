@@ -63,15 +63,6 @@ export const assessmentGuard = (to, from, next) => {
   if (authService.isAuthenticated()) {
     const hasCompletedAssessment = userStore.state.initial_assessment_completed.value
 
-    console.log('Assessment Guard Check:', {
-      path: to.path,
-      hasCompletedAssessment,
-      userData: {
-        isAuthenticated: userStore.state.isAuthenticated.value,
-        initial_assessment_completed: userStore.state.initial_assessment_completed.value
-      }
-    })
-
     if (!hasCompletedAssessment && to.path !== '/assessment') {
       return next('/assessment')
     }
