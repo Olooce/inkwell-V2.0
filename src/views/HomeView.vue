@@ -15,15 +15,15 @@
       </div>
     </div>
   </template>
-  
+
   <script setup>
   </script>
-  
+
   <style scoped>
   .home-container {
     width: 100vw;
     height: 100vh;
-    background-image: url('@/assets/images/home/hero-image-darkened.jpg');
+    background-image: url('@assets/assets/images/home/hero-image-darkened.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -32,7 +32,7 @@
     flex-direction: column;
     position: relative;
   }
-  
+
   .content {
     height: 100%;
     padding: 1rem;
@@ -40,14 +40,14 @@
     flex-direction: column;
     z-index: 1;
   }
-  
+
   .logo {
     color: white;
     font-family: 'Fredoka', sans-serif;
     font-size: 2.5rem;
     font-weight: 500;
   }
-  
+
   .text-content {
     flex: 1;
     display: flex;
@@ -56,7 +56,7 @@
     justify-content: center;
     text-align: center;
   }
-  
+
   .title {
     color: white;
     font-family: 'Fredoka', sans-serif;
@@ -64,7 +64,7 @@
     font-weight: 500;
     margin-bottom: 1rem;
   }
-  
+
   .creativity {
   color: white;
   font-family: 'Fredoka', sans-serif;
@@ -74,7 +74,7 @@
   letter-spacing: 2px; /* Added letter spacing */
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1); /* Subtle text shadow */
 }
-  
+
   .get-started-btn {
   background: transparent !important;
   color: white !important;
@@ -91,34 +91,34 @@
   justify-content: center !important;
   min-width: 200px !important; /* Ensure minimum width */
 }
-  
+
   @media (max-width: 768px) {
     .logo {
       font-size: 2rem;
     }
-  
+
     .title {
       font-size: 2.5rem;
     }
-  
+
     .creativity {
       font-size: 3.5rem;
     }
   }
-  
+
   @media (max-width: 480px) {
     .content {
       padding: 1rem;
     }
-  
+
     .title {
       font-size: 2rem;
     }
-  
+
     .creativity {
       font-size: 2.5rem;
     }
-  
+
     .get-started-btn {
       font-size: 1rem !important;
       padding: 0.5rem 2rem !important;
