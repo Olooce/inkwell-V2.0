@@ -104,8 +104,8 @@ const passwordRules = [
 ]
 
 const carouselImages = [
-  '/src/assets/images/auth/cloud-bg.jpg',
-  '/src/assets/images/auth/kid-pencil.jpg'
+  '/public/assets/images/auth/cloud-bg.jpg',
+  '/public/assets/images/auth/kid-pencil.jpg'
 ]
 
 const handleLogin = async () => {
