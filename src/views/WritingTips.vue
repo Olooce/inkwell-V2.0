@@ -73,37 +73,42 @@ onMounted(() => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--color-white);
+  background-color: #f5f7fa;
 }
 
 .writing-tips-content {
-  padding: 2rem 4rem;
+  padding: 3rem 6rem;
   margin: 0 auto;
   width: 100%;
+  max-width: 1400px;
   margin-top: 80px;
+  text-align: center;
 }
 
 .loading, .error, .no-data {
   text-align: center;
   padding: 2rem;
+  font-size: 1.2rem;
   font-family: 'Fredoka', sans-serif;
 }
 
 .error {
-  color: #ff4444;
+  color: #e74c3c;
+  background: #ffe5e5;
+  border-radius: 8px;
 }
 
 .no-data {
-  color: #666;
+  color: #555;
   font-style: italic;
 }
 
 .page-title {
   font-family: 'Fredoka', sans-serif;
-  font-size: 2rem;
+  font-size: 2.5rem;
+  font-weight: bold;
   margin-bottom: 2rem;
-  margin-left: 1rem;
-  color: var(--color-black);
+  color: #333;
 }
 
 .tips-grid {
@@ -111,32 +116,53 @@ onMounted(() => {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
   padding: 1rem;
-  max-width: 1400px;
   margin: 0 auto;
 }
 
 .tip-card {
-  background-color: rgba(6, 143, 255, 0.18);
+  background-color: #ffffff;
   border-radius: 16px;
-  padding: 1.5rem 2rem;
+  padding: 2rem;
   text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.tip-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
 }
 
 .tip-title {
   font-family: 'Fredoka', sans-serif;
-  font-size: 1.5rem;
-  color: var(--color-black);
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #222;
   margin-bottom: 1rem;
 }
 
 .view-link {
   display: inline-block;
-  padding: 0.5rem 1rem;
-  background-color: var(--color-light-blue);
-  color: var(--color-white);
+  padding: 0.75rem 1.5rem;
+  background-color: #068fff;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: bold;
   border-radius: 8px;
   text-decoration: none;
   font-family: 'Fredoka', sans-serif;
+  transition: background-color 0.3s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.view-link:hover {
+  background-color: #026fdb;
+}
+
+.view-link:focus {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
 }
 
 @media (max-width: 1024px) {
@@ -144,7 +170,7 @@ onMounted(() => {
     padding: 2rem;
   }
   .tips-grid {
-    gap: 2rem;
+    gap: 1.5rem;
   }
 }
 
