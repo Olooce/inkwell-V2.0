@@ -2,6 +2,9 @@
 
 Inkwell is a web-based comic generation and storytelling platform. This repository contains the frontend code for the Inkwell project, built using *Vite* and *Vue.js*.
 
+ ![Screenshot](https://github.com/user-attachments/assets/7f50dfae-cb21-4306-ad42-0dff27ac45a3)
+
+
 
 
 ## Table of Contents
