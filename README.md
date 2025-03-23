@@ -106,38 +106,42 @@ To set up the frontend locally, follow these steps:
 
 ### Steps
 1. Clone the repository:
-   sh
+   ```sh
    git clone https://github.com/Olooce/inkwell-V2.0.git
+
    
 2. Navigate into the project directory:
-   sh
+   ```sh
    cd inkwell-frontend
    
 3. Install dependencies:
-   sh
+   ```sh
    npm install
    
+   ```
    or
-   sh
+   ```sh
    yarn install
    
 
 ## Usage
 To start the development server, run:
-sh
+```sh
 npm run dev
-
+```
 or
-sh
+``` sh
 yarn dev
 
+```
 The app will be available at http://localhost:5173/ (default Vite port).
 
 ## Environment Variables
 Create a .env file in the root directory and define the required environment variables:
-
-VITE_API_BASE_URL=http://localhost:8000/api
-
+```
+VITE_DEV_IMAGE_URL = http://localhost:8080/api
+VITE_DEV_BASE_URL = http://localhost:8080/api
+```
 Replace http://localhost:8000/api with the actual backend URL.
 
 ## Backend Repository
