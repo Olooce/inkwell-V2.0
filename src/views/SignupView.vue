@@ -107,9 +107,9 @@ const loading = ref(false)
 const error = ref('')
 
 const carouselImages = [
-  '/public/assets/images/auth/cloud-bg.jpg',
-  '/public/assets/images/auth/kid-pencil.jpg'
-]
+  '/assets/images/auth/cloud-bg.jpg',
+  '/assets/images/auth/kid-pencil.jpg'
+];
 
 const validateForm = () => {
   if (!firstName.value.trim() || !lastName.value.trim() || !email.value.trim() || !password.value) {
