@@ -76,9 +76,8 @@ onMounted(() => {
 .tip-view-content {
   flex: 1;
   padding: 2rem;
-  margin: 0 auto;
   max-width: 900px;
-  margin-top: 80px;
+  margin: 80px auto 0;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
