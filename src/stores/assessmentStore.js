@@ -69,33 +69,35 @@ export const assessmentStore = {
     }
   },
 
-  async submitAnswer(answer) {
-    try {
-      const currentQuestion = this.getCurrentQuestion()
-      if (!currentQuestion) throw new Error('No current question')
 
-      const response = await apiClient.post('/assessments/submit', {
-        session_id: state.currentSession,
-        question_id: currentQuestion.id,
-        answer: answer
-      })
+async submitAnswer(answer) {
+  try {
+    const currentQuestion = this.getCurrentQuestion()
+    if (!currentQuestion) throw new Error('No current question')
 
-      state.answers.value = [...state.answers.value, {
-        questionId: currentQuestion.id,
-        answer: answer,
-        isCorrect: response.data.isCorrect,
-        feedback: response.data.feedback
-      }]
-
-      // Save the state after submitting an answer
-      this.saveStateToLocalStorage()
-
-      return response.data
-    } catch (error) {
-      toast.error(error.message)
-      throw error
+    const payload = {
+      session_id: state.currentSession.value,  // Extract .value
+      question_id: currentQuestion.id,
+      answer: answer
     }
-  },
+
+    const response = await apiClient.post('/assessments/submit', payload)
+
+    state.answers.value = [...state.answers.value, {
+      questionId: currentQuestion.id,
+      answer: answer,
+      isCorrect: response.data.isCorrect,
+      feedback: response.data.feedback
+    }]
+
+    this.saveStateToLocalStorage()  // Persist state
+
+    return response.data
+  } catch (error) {
+    toast.error(error.message)
+    throw error
+  }
+},
 
   nextQuestion() {
     if (state.currentQuestionIndex.value < state.questions.value.length - 1) {
