@@ -1,104 +1,129 @@
-import axios from 'axios';
-import { toast } from 'vue3-toastify'
+import axios from 'axios'
 
-export const BASE_URL = import.meta.env.MODE === 'development' && import.meta.env.VITE_DEV_BASE_URL
-  ? import.meta.env.VITE_DEV_BASE_URL
-  : (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}/api` : '/api');
+const origin = typeof window !== 'undefined' ? window.location.origin : ''
+const isDev = import.meta.env.MODE === 'development'
 
-export const IMAGE_URL = import.meta.env.MODE === 'development' && import.meta.env.VITE_DEV_IMAGE_URL
-  ? import.meta.env.VITE_DEV_IMAGE_URL
-  : (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}/api` : '/api');
+// In production the backend is reverse-proxied under /api.
+export const BASE_URL = (isDev && import.meta.env.VITE_DEV_BASE_URL) || `${origin}/api`
+
+export const IMAGE_URL = (isDev && import.meta.env.VITE_DEV_IMAGE_URL) || `${BASE_URL}/static`
+
+const ACCESS_KEY = 'user-token'
+const REFRESH_KEY = 'refresh-token'
+
+export const tokenStorage = {
+  getAccess: () => localStorage.getItem(ACCESS_KEY),
+  getRefresh: () => localStorage.getItem(REFRESH_KEY),
+  set(access, refresh) {
+    localStorage.setItem(ACCESS_KEY, access.startsWith('Bearer ') ? access : `Bearer ${access}`)
+    if (refresh) localStorage.setItem(REFRESH_KEY, refresh)
+  },
+  clear() {
+    localStorage.removeItem(ACCESS_KEY)
+    localStorage.removeItem(REFRESH_KEY)
+  },
+}
+
+export const assetUrl = (path) => {
+  if (!path) return ''
+  if (/^https?:\/\//.test(path)) return path
+  return `${IMAGE_URL}/${path.replace(/^\/+/, '')}`
+}
+
+/** Extracts a human-readable message from an axios/fetch error. Backend errors are `{ error }`. */
+export const getErrorMessage = (error, fallback = 'Something went wrong. Please try again.') => {
+  if (!error) return fallback
+  if (error.code === 'ERR_NETWORK') return 'Can’t reach the server. Check your connection and try again.'
+  if (error.code === 'ECONNABORTED') return 'The server took too long to respond. Please try again.'
+  const data = error.response?.data
+  if (data && typeof data === 'object' && typeof data.error === 'string') return data.error
+  return error.isUserFacing ? error.message : fallback
+}
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'ngrok-skip-browser-warning': 'true'
+    Accept: 'application/json',
+    'ngrok-skip-browser-warning': 'true',
   },
-  withCredentials: true,
-  // timeout: 15000,
-});
+})
 
-let isRefreshing = false;
+apiClient.interceptors.request.use((config) => {
+  const token = tokenStorage.getAccess()
+  if (token) config.headers.Authorization = token
+  return config
+})
 
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('user-token');
-    if (token) {
-      config.headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+// A single in-flight refresh shared by every request that hit a 401 at the same time.
+let refreshPromise = null
+
+export const refreshAccessToken = () => {
+  if (!refreshPromise) {
+    const refreshToken = tokenStorage.getRefresh()
+    refreshPromise = (
+      refreshToken
+        ? axios.post(`${BASE_URL}/auth/refresh`, { refresh_token: refreshToken })
+        : Promise.reject(new Error('No refresh token'))
+    )
+      .then(({ data }) => {
+        tokenStorage.set(data.access, data.refresh)
+        return tokenStorage.getAccess()
+      })
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+  return refreshPromise
+}
+
+export const expireSession = () => {
+  tokenStorage.clear()
+  localStorage.removeItem('user-data')
+  const here = window.location.pathname + window.location.search
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.assign(`/login?expired=1&redirect=${encodeURIComponent(here)}`)
+  }
+}
 
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-    if (!originalRequest || error.response?.status !== 401) {
-      return Promise.reject(error);
+    const original = error.config
+    const isAuthCall = original?.url?.startsWith('/auth/')
+    if (error.response?.status !== 401 || !original || isAuthCall || original._retry) {
+      return Promise.reject(error)
     }
 
-    toast.error(error.message)
-
-    const isAuthEndpoint = [
-      "/auth/refresh",
-      "/auth/login",
-      "/auth/validate_otp",
-      "/auth/logout",
-      "/auth/reset_password"
-    ].some((endpoint) => originalRequest.url.includes(endpoint));
-
-    if (isAuthEndpoint) {
-      return Promise.reject(error);
-    }
-
-    if (originalRequest._retry) {
-      await handleLogout();
-      return Promise.reject(error);
-    }
-
-    originalRequest._retry = true;
-
+    original._retry = true
     try {
-      if (!isRefreshing) {
-        isRefreshing = true;
-        const refreshResponse = await apiClient.post("/auth/refresh", {
-          refreshToken: localStorage.getItem('refresh-token')
-        });
-
-        if (refreshResponse.status === 200) {
-          const { access, refresh } = refreshResponse.data;
-          localStorage.setItem('user-token', access);
-          localStorage.setItem('refresh-token', refresh);
-
-          originalRequest.headers.Authorization = `Bearer ${access}`;
-          isRefreshing = false;
-          return apiClient(originalRequest);
-        }
-      }
-    } catch (refreshError) {
-     toast.error(refreshError.message);
-    } finally {
-      isRefreshing = false;
+      original.headers.Authorization = await refreshAccessToken()
+      return apiClient(original)
+    } catch {
+      expireSession()
+      return Promise.reject(error)
     }
+  },
+)
 
-    await handleLogout();
-    return Promise.reject(error);
+export const authFetch = async (path, init = {}) => {
+  const send = () =>
+    fetch(`${BASE_URL}${path}`, {
+      ...init,
+      headers: { ...init.headers, Authorization: tokenStorage.getAccess() || '' },
+    })
+
+  let response = await send()
+  if (response.status === 401) {
+    try {
+      await refreshAccessToken()
+    } catch {
+      expireSession()
+      return response
+    }
+    response = await send()
   }
-);
+  return response
+}
 
-const handleLogout = async () => {
-  try {
-    await apiClient.post("/auth/logout");
-  } catch (logoutError) {
-   toast.error(logoutError.message);
-  } finally {
-    localStorage.clear();
-    window.location.href = "/login";
-  }
-};
-
-export default apiClient;
+export default apiClient

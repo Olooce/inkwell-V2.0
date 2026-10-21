@@ -1,152 +1,143 @@
 <template>
-  <div class="assessment-layout">
-    <Navigation :user-name="userName" />
+  <div class="page page--narrow">
+    <router-link v-if="isRetake" to="/progress" class="back-link">
+      <ArrowLeft :size="18" /> Back to progress
+    </router-link>
 
-    <main class="assessment-content">
-      <div class="assessment-card">
-        <h1 class="title">HEY THERE!</h1>
-        <p class="message">
-          It's your first time using inkwell, welcome! Get ready for an amazing adventure.
-          To begin, you need to answer a few questions.
-        </p>
-        <p class="sub-message">Let's dive right in!</p>
+    <section class="intro card">
+      <div class="intro-icon" aria-hidden="true"><Sparkles :size="36" /></div>
+      <h1>{{ isRetake ? 'Ready for another go?' : `Hi ${userStore.displayName.value}, welcome to Inkwell!` }}</h1>
+      <p class="lead">
+        <template v-if="isRetake">
+          Take the quiz again to see how much your grammar has improved since you started.
+        </template>
+        <template v-else>
+          Before you start writing, let’s see where you are. This short quiz helps us track how
+          your writing grows over time.
+        </template>
+      </p>
 
-        <v-btn
-          class="start-btn"
-          :loading="loading"
-          :disabled="loading"
-          @click="startAssessment"
-          color="primary"
-          size="large"
-        >
-          {{ loading ? 'Loading...' : 'START' }}
-        </v-btn>
-      </div>
+      <ul class="facts">
+        <li><CircleCheck :size="20" /> 5 short grammar questions on one topic</li>
+        <li><CircleCheck :size="20" /> No time limit - take your time</li>
+        <li><CircleCheck :size="20" /> You’ll get friendly feedback after each answer</li>
+      </ul>
 
-      <v-alert
-        v-if="error"
-        type="error"
-        variant="tonal"
-        class="mt-4"
-      >
+      <v-alert v-if="error" type="error" variant="tonal" class="mb-4 text-left" role="alert">
         {{ error }}
       </v-alert>
-    </main>
+
+      <div class="actions">
+        <v-btn
+          v-if="hasSaved"
+          color="primary"
+          size="x-large"
+          @click="router.push('/assessment/question')"
+        >
+          Continue quiz ({{ savedProgress }})
+        </v-btn>
+        <v-btn
+          :color="hasSaved ? undefined : 'primary'"
+          :variant="hasSaved ? 'outlined' : 'flat'"
+          size="x-large"
+          :loading="loading"
+          @click="startAssessment"
+        >
+          {{ hasSaved ? 'Start over' : 'Start the quiz' }}
+          <ArrowRight v-if="!hasSaved" :size="20" class="ml-2" />
+        </v-btn>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import Navigation from '@/components/Navigation.vue'
+import { ArrowLeft, ArrowRight, CircleCheck, Sparkles } from '@lucide/vue'
 import { userStore } from '@/stores/userStore'
 import { assessmentStore } from '@/stores/assessmentStore'
-import { toast } from 'vue3-toastify'
+import { getErrorMessage } from '@/services/apiClient'
 
 const router = useRouter()
-const userName = ref(userStore.state.firstName.value || 'Guest')
 const loading = ref(false)
 const error = ref('')
+
+const isRetake = computed(() => userStore.state.initial_assessment_completed.value)
+const hasSaved = ref(assessmentStore.hasSessionInProgress())
+const savedProgress = computed(() => {
+  const { current, total } = assessmentStore.getProgress()
+  return `question ${current} of ${total}`
+})
 
 const startAssessment = async () => {
   loading.value = true
   error.value = ''
-
   try {
-
-    const data = await assessmentStore.startAssessment()
-
-    // Store session data in assessment store
-    assessmentStore.state.currentSession.value = data.session_id
-    assessmentStore.state.questions.value = data.questions
-    assessmentStore.state.currentQuestionIndex.value = 0
-
-    // Navigate to first question
-    await router.push('/assessment/question')
+    await assessmentStore.startAssessment()
+    router.push('/assessment/question')
   } catch (err) {
-    toast.error(err.message)
-    error.value = err.message || 'Failed to start assessment'
+    error.value = getErrorMessage(err, 'We couldn’t load the quiz. Please try again.')
   } finally {
     loading.value = false
   }
 }
 </script>
 
-
 <style scoped>
-.assessment-layout {
-min-height: 100vh;
-background-color: white;
+.intro {
+  padding: clamp(1.75rem, 5vw, 3rem);
+  text-align: center;
 }
 
-.assessment-content {
-padding: 2rem;
-margin: 0 auto;
-max-width: 800px;
-margin-top: 80px;
-display: flex;
-flex-direction: column;
-gap: 2rem;
+.intro-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ink-primary-soft);
+  color: var(--ink-primary);
 }
 
-.assessment-card {
-background: white;
-border-radius: 24px;
-padding: 3rem;
-text-align: center;
-box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+.intro h1 {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  color: var(--ink-primary-strong);
 }
 
-.title {
-font-family: 'Fredoka', sans-serif;
-font-size: 2.5rem;
-color: #4F46E5;
-margin-bottom: 2rem;
+.lead {
+  margin: 1rem auto 1.5rem;
+  max-width: 52ch;
+  font-size: 1.1rem;
+  color: var(--ink-text-muted);
 }
 
-.message {
-font-size: 1.2rem;
-line-height: 1.6;
-margin-bottom: 1.5rem;
-color: #333;
+.facts {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto 2rem;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  text-align: left;
 }
 
-.sub-message {
-font-family: 'Fredoka', sans-serif;
-font-size: 1.5rem;
-margin-bottom: 2rem;
-color: #6366F1;
+.facts li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
 }
 
-.start-btn {
-background-color: #2563EB;
-color: white;
-border: none;
-border-radius: 12px;
-padding: 1rem 4rem;
-font-size: 1.2rem;
-font-family: 'Fredoka', sans-serif;
-cursor: pointer;
-transition: all 0.2s;
+.facts :deep(.lucide) {
+  color: var(--ink-green);
 }
 
-.start-btn:hover:not(:disabled) {
-background-color: #1D4ED8;
-transform: translateY(-1px);
-}
-
-.start-btn:disabled {
-opacity: 0.7;
-cursor: not-allowed;
-}
-
-.error-message {
-background-color: #FEE2E2;
-border: 1px solid #FCA5A5;
-color: #DC2626;
-padding: 1rem;
-border-radius: 8px;
-text-align: center;
-font-family: 'Fredoka', sans-serif;
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
 }
 </style>

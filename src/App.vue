@@ -1,45 +1,39 @@
 <template>
   <v-app>
-    <router-view></router-view>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <AppHeader v-if="showShell" />
+    <main id="main-content" tabindex="-1" :class="{ 'with-shell': showShell }">
+      <router-view />
+    </main>
   </v-app>
 </template>
 
-<script>
+<script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import AppHeader from '@/components/AppHeader.vue'
+import { userStore } from '@/stores/userStore'
 
-import { assessmentStore } from '@/stores/assessmentStore.js'
-import { storyStore } from '@/stores/storyStore.js'
-import { userStore } from '@/stores/userStore.js'
+const route = useRoute()
 
-
-export default {
-  mounted() {
-    assessmentStore.loadPersistedData()
-    storyStore.loadStateFromLocalStorage()
-    userStore.loadStoredUser()
-  }
-}
+const showShell = computed(
+  () => !route.meta.public || (route.meta.allowSignedIn && userStore.state.isAuthenticated.value),
+)
 </script>
 
 <style>
-:root {
-  --color-dark-blue: #4E4FEB;
-  --color-light-blue: #068FFF;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-.v-application {
-  width: 100vw !important;
-  min-height: 100vh !important;
-  display: flex;
-}
-
-.v-application__wrap {
-  width: 100%;
+#main-content {
+  outline: none;
   min-height: 100vh;
+}
+
+#main-content.with-shell {
+  padding-top: var(--ink-header-height);
+}
+
+@media (max-width: 760px) {
+  #main-content.with-shell {
+    padding-bottom: calc(var(--ink-tabbar-height) + env(safe-area-inset-bottom));
+  }
 }
 </style>

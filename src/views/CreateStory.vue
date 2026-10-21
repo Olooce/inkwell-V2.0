@@ -1,648 +1,606 @@
 <template>
-  <div class="create-story-layout">
-    <Navigation :user-name="userName" />
+  <div class="page page--narrow">
+    <!-- Checking for an unfinished story -->
+    <div v-if="stage === 'loading'" class="state-panel" role="status">
+      <v-progress-circular indeterminate color="primary" />
+      <p>Getting your story ready…</p>
+    </div>
 
-    <main class="create-story-content">
-      <div v-if="!storyStarted" class="start-story-section">
-        <h1 class="page-title">Start Your Story Adventure!</h1>
-        <div class="input-container">
-          <input
-            v-model="storyTitle"
-            class="title-input"
-            placeholder="Enter your story title..."
-            @keyup.enter="startStory"
-          />
-          <button @click="startStory" class="start-button" :disabled="!storyTitle">
-            Begin Story
-          </button>
-        </div>
-      </div>
+    <div v-else-if="stage === 'error'" class="state-panel" role="alert">
+      <CircleAlert :size="36" />
+      <h2>We couldn’t load your story</h2>
+      <p>{{ loadError }}</p>
+      <v-btn color="primary" @click="load">Try again</v-btn>
+    </div>
 
-      <div v-else class="story-writing-section">
-        <h1 class="page-title">WARM UP YOUR WRITING SKILLS!</h1>
-        <div class="progress-bar">
-          <div class="progress-text">
-            {{ currentSentenceCount }} of {{ maxSentences }} sentences
-          </div>
-          <div class="progress-track">
-            <div
-              class="progress-fill"
-              :style="{ width: `${(currentSentenceCount / maxSentences) * 100}%` }"
-            ></div>
-          </div>
-        </div>
+    <!-- Step 1: title -->
+    <template v-else-if="stage === 'title'">
+      <header class="page-header">
+        <h1>Start a new story</h1>
+        <p>Give your story a title. Then you’ll write it one sentence at a time - {{ MAX_SENTENCES }} sentences in all.</p>
+      </header>
 
-        <div class="story-input-section">
-          <h2 class="input-prompt">{{ inputPrompt }}</h2>
-          <div class="input-container">
-            <textarea
-              v-model="userSentence"
-              class="sentence-input"
-              :placeholder="inputPlaceholder"
-              @keydown.enter.prevent="verifySentence"
-              :disabled="isLoading"
-            ></textarea>
-          </div>
+      <form class="card panel" @submit.prevent="startStory">
+        <v-text-field
+          v-model="title"
+          label="Story title"
+          placeholder="e.g. The Dragon Who Was Afraid of the Dark"
+          counter="80"
+          maxlength="80"
+          autofocus
+          :disabled="starting"
+        />
+        <v-btn
+          type="submit"
+          color="primary"
+          size="x-large"
+          block
+          :loading="starting"
+          :disabled="!title.trim()"
+        >
+          Start writing
+          <ArrowRight :size="20" class="ml-2" />
+        </v-btn>
+      </form>
+
+      <section class="card panel idea" aria-labelledby="idea-title">
+        <h2 id="idea-title"><Lightbulb :size="20" /> Need an idea?</h2>
+        <p class="muted">Pick a kind of story and the writing helper will suggest one.</p>
+        <div class="genres" role="group" aria-label="Kind of story">
           <button
-            @click="verifySentence"
-            class="verify-button"
-            :disabled="!userSentence.trim() || isLoading"
+            v-for="g in genres"
+            :key="g.genre"
+            type="button"
+            class="genre"
+            :disabled="ideaLoading"
+            @click="getIdea(g)"
           >
-            {{ isLoading ? 'Processing...' : 'Verify' }}
+            {{ g.label }}
           </button>
         </div>
+        <p v-if="ideaLoading" class="muted" role="status">Thinking of an idea…</p>
+        <p v-else-if="idea" class="idea-text" aria-live="polite">{{ idea }}</p>
+      </section>
+    </template>
 
-        <!-- Previous Sentences -->
-        <div v-if="sentences.length > 0" class="previous-sentences">
-          <div
-            v-for="sentence in sentences"
-            :key="sentence.id"
-            class="sentence-card"
-          >
-            <p class="original-text">{{ sentence.original_text }}</p>
-            <p class="corrected-text">{{ sentence.corrected_text }}</p>
-            <p class="feedback">{{ sentence.feedback }}</p>
-            <img
-              v-if="sentence.image_url"
-              :src="getSentenceImageUrl(sentence)"
-              :alt="sentence.corrected_text"
-              class="sentence-image"
-            />
-          </div>
-        </div>
+    <!-- Step 2: writing -->
+    <template v-else-if="stage === 'writing'">
+      <header class="page-header">
+        <span class="eyebrow">Your story</span>
+        <h1>{{ story.title }}</h1>
+      </header>
 
-        <!-- Feedback Popup -->
-        <div v-if="showFeedback" class="feedback-popup">
-          <div class="popup-content">
-            <h3 class="popup-title">Feedback</h3>
-            <p class="feedback-text">{{ feedbackMessage }}</p>
-            <p class="correct-sentence">{{ correctedSentence }}</p>
+      <ol class="stepper" :aria-label="`${sentenceCount} of ${story.maxSentences} sentences written`">
+        <li
+          v-for="n in story.maxSentences"
+          :key="n"
+          :class="{ done: n <= sentenceCount, current: n === sentenceCount + 1 }"
+          aria-hidden="true"
+        >
+          {{ n }}
+        </li>
+      </ol>
+
+      <p v-if="missingSentences" class="note">
+        <CircleAlert :size="18" />
+        You wrote {{ missingSentences }}
+        {{ missingSentences === 1 ? 'sentence' : 'sentences' }} of this story on another device, so
+        {{ missingSentences === 1 ? 'it isn’t' : 'they aren’t' }} shown here.
+      </p>
+
+      <ol v-if="sentences.length" class="sentences">
+        <li v-for="(s, i) in sentences" :key="s.id ?? i" class="card sentence-card">
+          <div class="sentence-media">
             <img
-              v-if="sentences[currentSentenceCount - 1]?.image_url"
-              :src= "currentSentenceImageUrl"
-              alt="Generated Story Visual"
-              class="popup-image"
+              v-if="s.image_url && !brokenImages[s.id]"
+              :src="assetUrl(s.image_url)"
+              :alt="`Picture for: ${s.corrected_text || s.original_text}`"
+              loading="lazy"
+              @error="brokenImages[s.id] = true"
             />
-            <div class="popup-buttons">
-              <button @click="continueToPicture" class="next-button">Next</button>
+            <div v-else class="no-image">
+              <ImageIcon :size="28" />
+              <span>No picture this time</span>
             </div>
           </div>
-        </div>
-
-        <!-- Completion Popup -->
-        <div v-if="showCompletionPopup" class="completion-popup">
-          <div class="popup-content">
-            <h2 class="popup-title">WOWWW!</h2>
-            <div class="popup-message">
-              <p>YOU DID IT! GREAT JOB!</p>
-              <p>Find your story in the comic section.</p>
-            </div>
-            <button @click="goToComics" class="done-button">
-              View Comic
-            </button>
+          <div class="sentence-body">
+            <span class="sentence-num">Sentence {{ i + 1 + missingSentences }}</span>
+            <p class="final-text">{{ s.corrected_text || s.original_text }}</p>
+            <p v-if="wasCorrected(s)" class="original">
+              <span class="label">You wrote:</span> {{ s.original_text }}
+            </p>
+            <p v-if="s.feedback" class="feedback">
+              <Sparkles :size="16" /> {{ s.feedback }}
+            </p>
           </div>
-        </div>
+        </li>
+      </ol>
+
+      <div v-if="submitting" class="card panel working" role="status">
+        <v-progress-linear indeterminate color="primary" rounded height="6" />
+        <p>
+          <strong>Checking your grammar and drawing your picture…</strong><br />
+          This can take up to a minute. You can stay on this page.
+        </p>
       </div>
-    </main>
+
+      <form v-else-if="!isFull" class="card panel" @submit.prevent="addSentence">
+        <label for="sentence" class="prompt">{{ prompt }}</label>
+        <v-textarea
+          id="sentence"
+          ref="sentenceInput"
+          v-model="sentence"
+          :placeholder="sentenceCount === 0 ? 'Once upon a time…' : 'Then…'"
+          rows="3"
+          auto-grow
+          counter="300"
+          maxlength="300"
+          hint="Press Enter to submit · Shift + Enter for a new line"
+          persistent-hint
+          @keydown.enter.exact.prevent="addSentence"
+        />
+        <div class="form-actions">
+          <v-btn
+            v-if="sentenceCount > 0"
+            variant="text"
+            :disabled="completing"
+            @click="confirmFinish = true"
+          >
+            Finish story early
+          </v-btn>
+          <v-btn type="submit" color="primary" size="large" :disabled="!sentence.trim()">
+            Add sentence {{ sentenceCount + 1 }}
+          </v-btn>
+        </div>
+      </form>
+
+      <div v-else class="card panel finish">
+        <h2>That’s all {{ story.maxSentences }} sentences!</h2>
+        <p class="muted">Finish your story to turn it into a comic.</p>
+        <v-btn color="primary" size="x-large" :loading="completing" @click="completeStory">
+          Finish my story
+        </v-btn>
+      </div>
+    </template>
+
+    <!-- Step 3: done -->
+    <section v-else-if="stage === 'done'" class="card panel done" aria-labelledby="done-title">
+      <div class="done-icon" aria-hidden="true"><Sparkles :size="40" /></div>
+      <h1 id="done-title" ref="doneHeading" tabindex="-1">You did it - great job!</h1>
+      <p>
+        “{{ story.title }}” is finished. We’re turning it into a comic now; it will appear in
+        <strong>My comics</strong> in a minute or two.
+      </p>
+      <div class="done-actions">
+        <v-btn color="primary" size="x-large" to="/comics">Go to my comics</v-btn>
+        <v-btn variant="outlined" size="x-large" @click="reset">Write another story</v-btn>
+      </div>
+    </section>
+
+    <v-dialog v-model="confirmFinish" max-width="420">
+      <v-card class="pa-2">
+        <v-card-title>Finish your story now?</v-card-title>
+        <v-card-text>
+          You’ve written {{ sentenceCount }} of {{ story?.maxSentences }} sentences. You won’t be
+          able to add more once it’s finished.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="confirmFinish = false">Keep writing</v-btn>
+          <v-btn color="primary" :loading="completing" @click="completeStory">Finish story</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import Navigation from '@/components/Navigation.vue'
-import { storyStore } from '@/stores/storyStore.js'
-import { userStore } from '@/stores/userStore'
-import { IMAGE_URL } from '@/services/apiClient'
-import { toast } from "vue3-toastify";
-import "vue3-toastify/dist/index.css";
+import { ref, reactive, computed, nextTick, onMounted } from 'vue'
+import { toast } from 'vue3-toastify'
+import { ArrowRight, CircleAlert, Image as ImageIcon, Lightbulb, Sparkles } from '@lucide/vue'
+import apiClient, { assetUrl, getErrorMessage } from '@/services/apiClient'
+import { storyStore, MAX_SENTENCES } from '@/stores/storyStore'
 
-const router = useRouter()
-const userName = computed(() => userStore.state.firstName.value)
-
-// Story state
-const storyId = ref(null)
-const storyTitle = ref('')
-const storyStarted = ref(false)
-const maxSentences = ref(0)
-const currentSentenceCount = ref(0)
+const stage = ref('loading') // loading | error | title | writing | done
+const loadError = ref('')
+const story = ref(null)
 const sentences = ref([])
+const brokenImages = reactive({})
 
-// UI state
-const userSentence = ref('')
-const isLoading = ref(false)
-const showFeedback = ref(false)
-const showCompletionPopup = ref(false)
-const feedbackMessage = ref('')
-const correctedSentence = ref('')
+const title = ref('')
+const starting = ref(false)
+const sentence = ref('')
+const submitting = ref(false)
+const completing = ref(false)
+const confirmFinish = ref(false)
+const sentenceInput = ref(null)
+const doneHeading = ref(null)
 
-// Check for saved state on page load
-onMounted(() => {
-  const savedStoryId = localStorage.getItem('storyId')
-  const savedMaxSentences = localStorage.getItem('maxSentences')
-  const savedSentenceCount = localStorage.getItem('currentSentenceCount')
-  const savedSentences = JSON.parse(localStorage.getItem('sentences'))
+const sentenceCount = computed(() => story.value?.sentenceCount ?? 0)
+const isFull = computed(() => sentenceCount.value >= (story.value?.maxSentences ?? MAX_SENTENCES))
+// Sentences the backend has counted but this device has no copy of.
+const missingSentences = computed(() => Math.max(0, sentenceCount.value - sentences.value.length))
 
-  if (savedStoryId) {
-    storyId.value = savedStoryId
-    maxSentences.value = savedMaxSentences
-    currentSentenceCount.value = savedSentenceCount
-    sentences.value = savedSentences
-    storyStarted.value = true
-  }
-})
-
-const inputPrompt = computed(() => {
-  if (sentences.value.length === 0) {
-    return 'Start by typing your first sentence...'
-  }
+const prompt = computed(() => {
+  if (sentenceCount.value === 0) return 'Write the first sentence of your story'
+  if (sentenceCount.value === story.value.maxSentences - 1) return 'How does your story end?'
   return 'What happens next?'
 })
 
-const inputPlaceholder = computed(() => {
-  if (sentences.value.length === 0) {
-    return 'Type your first sentence here...'
+const wasCorrected = (s) =>
+  s.corrected_text && s.corrected_text.trim() !== s.original_text.trim()
+
+const enterWriting = (activeStory) => {
+  story.value = activeStory
+  sentences.value = storyStore.getSavedSentences(activeStory.id)
+  stage.value = 'writing'
+}
+
+const load = async () => {
+  stage.value = 'loading'
+  try {
+    const active = await storyStore.getActiveStory()
+    if (active) enterWriting(active)
+    else stage.value = 'title'
+  } catch (err) {
+    loadError.value = getErrorMessage(err)
+    stage.value = 'error'
   }
-  return 'Continue your story...'
-})
+}
 
-// const canCompleteStory = computed(() => {
-//   return sentences.value.length >= 3
-// })
+onMounted(load)
 
-// Methods
 const startStory = async () => {
-  if (!storyTitle.value.trim()) return
-
+  if (!title.value.trim()) return
+  starting.value = true
   try {
-    isLoading.value = true
-    const response = await storyStore.startStory(storyTitle.value)
-    storyId.value = response.story_id
-    maxSentences.value = response.max_sentences
-    storyStarted.value = true
-
-
-    localStorage.setItem('storyId', storyId.value)
-    localStorage.setItem('maxSentences', maxSentences.value)
-    localStorage.setItem('currentSentenceCount', currentSentenceCount.value)
-    localStorage.setItem('sentences', JSON.stringify(sentences.value))
-
-    toast.success("Story started successfully!", { timeout: 3000 })
-  } catch (error) {
-    toast.error(error.message, { timeout: 3000 })
+    const started = await storyStore.startStory(title.value.trim())
+    if (started.resumed) toast.info('You already had a story in progress, so we opened it for you.')
+    enterWriting(started)
+    await nextTick()
+    sentenceInput.value?.focus()
+  } catch (err) {
+    toast.error(getErrorMessage(err, 'We couldn’t start your story. Please try again.'))
   } finally {
-    isLoading.value = false
+    starting.value = false
   }
 }
 
-const verifySentence = async () => {
-  if (!userSentence.value.trim() || isLoading.value) return
-
+const addSentence = async () => {
+  const text = sentence.value.trim()
+  if (!text || submitting.value || isFull.value) return
+  submitting.value = true
   try {
-    isLoading.value = true
-    const response = await storyStore.addSentence(userSentence.value)
-
-    // Add sentence to list
-    sentences.value.push(response.sentence)
-    currentSentenceCount.value = sentences.value.length
-
-    // Show feedback
-    feedbackMessage.value = response.sentence.feedback
-    correctedSentence.value = response.sentence.corrected_text
-    showFeedback.value = true
-
-    // Save to localStorage
-    localStorage.setItem('currentSentenceCount', currentSentenceCount.value)
-    localStorage.setItem('sentences', JSON.stringify(sentences.value))
-
-    // Clear input
-    userSentence.value = ''
-  } catch (error) {
-    toast.error(error.message, { timeout: 3000 })
+    const saved = await storyStore.addSentence(story.value.id, text)
+    sentences.value.push(saved)
+    story.value.sentenceCount++
+    sentence.value = ''
+  } catch (err) {
+    // Keep what they typed so nothing is lost.
+    toast.error(getErrorMessage(err, 'We couldn’t add that sentence. Please try again.'))
   } finally {
-    isLoading.value = false
+    submitting.value = false
+    await nextTick()
+    sentenceInput.value?.focus()
   }
 }
-
-const currentSentenceImageUrl = computed(() => {
-  const sentence = sentences.value[currentSentenceCount.value - 1];
-  return sentence?.image_url ? `${IMAGE_URL}${sentence.image_url}` : '';
-});
-
-const getSentenceImageUrl = (sentence) => {
-  if (!sentence?.image_url) {
-    return '';
-  }
-  return `${IMAGE_URL}${sentence.image_url}`;
-};
 
 const completeStory = async () => {
+  completing.value = true
   try {
-    isLoading.value = true
-    await storyStore.completeStory(storyId.value)
-    showCompletionPopup.value = true
-
-    localStorage.removeItem('storyId')
-    localStorage.removeItem('maxSentences')
-    localStorage.removeItem('currentSentenceCount')
-    localStorage.removeItem('sentences')
-  } catch (error) {
-    toast.error(error.message, { timeout: 3000 })
+    await storyStore.completeStory(story.value.id)
+    confirmFinish.value = false
+    stage.value = 'done'
+    await nextTick()
+    doneHeading.value?.focus()
+  } catch (err) {
+    toast.error(getErrorMessage(err, 'We couldn’t finish your story. Please try again.'))
   } finally {
-    isLoading.value = false
+    completing.value = false
   }
 }
 
-const continueToPicture = () => {
-  showFeedback.value = false;
-  if (currentSentenceCount.value >= maxSentences.value) {
-    completeStory();
-  }
-};
-
-const goToComics = () => {
-  router.push('/comics')
+const reset = () => {
+  story.value = null
+  sentences.value = []
+  title.value = ''
+  stage.value = 'title'
 }
 
+// ---- Story ideas ----------------------------------------------------------
+
+const genres = [
+  { label: 'Adventure', genre: 'adventure', theme: 'exploring somewhere new' },
+  { label: 'Fantasy', genre: 'fantasy', theme: 'magic and friendship' },
+  { label: 'Mystery', genre: 'mystery', theme: 'a puzzling disappearance' },
+  { label: 'Animals', genre: 'animal story', theme: 'courage' },
+  { label: 'Space', genre: 'science fiction', theme: 'a journey to another planet' },
+]
+const idea = ref('')
+const ideaLoading = ref(false)
+
+const getIdea = async ({ genre, theme }) => {
+  ideaLoading.value = true
+  try {
+    const { data } = await apiClient.get('/chat/story-idea', { params: { genre, theme } })
+    idea.value = data.idea
+  } catch (err) {
+    toast.error(getErrorMessage(err, 'We couldn’t get an idea right now. Please try again.'))
+  } finally {
+    ideaLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
-/* Global Styles */
-/*body {
-  font-family: 'Fredoka', sans-serif;
-  background-color: var(--color-white);
-  margin: 0;
-  padding: 0;
-}*/
-
-.create-story-layout {
-  margin-top: 10%;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.create-story-content {
-  padding: 2rem;
-  margin: 0 auto;
-  max-width: 900px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.page-title {
-  font-size: 2.5rem;
-  color: #FF00FF;
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.start-story-section,
-.story-writing-section {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2rem;
-}
-
-/* Start Story Section */
-.title-input {
-  width: 100%;
-  padding: 1rem;
-  font-size: 1.5rem;
-  border: 2px solid #FF69B4;
-  border-radius: 12px;
-  margin-bottom: 1rem;
-  font-family: 'Fredoka', sans-serif;
-}
-
-.start-button {
-  background-color: #FFE6F7;
-  color: var(--color-black);
-  border: none;
-  border-radius: 12px;
-  padding: 1rem 2rem;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.start-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Progress Bar */
-.progress-bar {
-  width: 100%;
-  margin-bottom: 2rem;
-}
-
-.progress-track {
-  width: 100%;
-  height: 10px;
-  background-color: #FFE6F7;
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: #FF69B4;
-  transition: width 0.3s ease;
-}
-
-.progress-text {
-  text-align: center;
-  margin-bottom: 0.5rem;
-  color: var(--color-black);
-  font-size: 1rem;
-}
-
-/* Story Writing Section */
-
-.input-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Horizontally center the content */
-  gap: 1rem;
-  width: 100%;
-}
-
-.start-button,
-.verify-button,
-.next-button,
-.done-button {
-  display: block;
-  margin: 0 auto; /* Center the button horizontally */
-}
-
-
-.input-prompt {
-  font-size: 1.8rem;
-  color: var(--color-black);
-}
-
-.sentence-input {
-  width: 100%;
-  height: 120px;
+.panel {
   padding: 1.5rem;
-  border: 2px solid #FF69B4;
-  border-radius: 24px;
-  font-size: 1.5rem;
-  resize: none;
-  outline: none;
-  font-family: 'Fredoka', sans-serif;
+  margin-bottom: 1.25rem;
 }
 
-.verify-button {
-  background-color: #FFE6F7;
-  color: var(--color-black);
-  border: none;
-  border-radius: 24px;
-  padding: 1rem 4rem;
-  font-size: 1.2rem;
+.muted {
+  color: var(--ink-text-muted);
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-pink);
+}
+
+.idea h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.genre {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--ink-border);
+  border-radius: 999px;
+  background: var(--ink-surface);
+  font: inherit;
+  font-weight: 700;
+  color: var(--ink-primary-strong);
   cursor: pointer;
-  margin-top: 2rem;
-  transition: background-color 0.3s ease;
 }
 
-.verify-button:hover {
-  background-color: #FFD1F1;
+.genre:hover:not(:disabled) {
+  border-color: var(--ink-primary);
+  background: var(--ink-primary-soft);
 }
 
-/* Previous Sentences Section */
-.previous-sentences {
-  width: 100%;
+.genre:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.idea-text {
+  padding: 1rem;
+  border-radius: var(--ink-radius-sm);
+  background: var(--ink-sky-soft);
+  white-space: pre-line;
+}
+
+.stepper {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.stepper li {
+  flex: 1;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--ink-border);
+  color: var(--ink-text-muted);
+  font-weight: 700;
+}
+
+.stepper li.done {
+  background: var(--ink-primary);
+  color: #fff;
+}
+
+.stepper li.current {
+  background: var(--ink-primary-soft);
+  color: var(--ink-primary-strong);
+  outline: 2px solid var(--ink-primary);
+  outline-offset: -2px;
+}
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--ink-radius-sm);
+  background: var(--ink-orange-soft);
+}
+
+.sentences {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  margin-top: 2rem;
+  gap: 1rem;
 }
 
 .sentence-card {
-  background-color: white;
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #FFE6F7;
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  overflow: hidden;
 }
 
-.original-text {
-  color: #666;
-  font-style: italic;
-  margin-bottom: 0.5rem;
+.sentence-media img,
+.no-image {
+  width: 100%;
+  height: 100%;
+  min-height: 150px;
+  object-fit: cover;
+  display: block;
 }
 
-.corrected-text {
-  color: #FF69B4;
-  font-weight: 500;
-  margin-bottom: 1rem;
+.no-image {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: var(--ink-bg);
+  color: var(--ink-text-muted);
+  font-size: 0.85rem;
+}
+
+.sentence-body {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sentence-num {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-primary);
+}
+
+.final-text {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.original {
+  color: var(--ink-text-muted);
+  text-decoration: line-through;
+  text-decoration-color: rgba(198, 40, 40, 0.5);
+}
+
+.original .label {
+  text-decoration: none;
+  display: inline-block;
+  font-weight: 700;
 }
 
 .feedback {
-  background-color: #FFE6F7;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-}
-
-.sentence-image {
-  width: 100%;
-  max-width: 400px;
-  height: auto;
-  border-radius: 8px;
-  margin: 1rem auto;
-  display: block;
-}
-
-/* Feedback Popup */
-.feedback-popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+  gap: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--ink-radius-sm);
+  background: var(--ink-green-soft);
+  font-size: 0.95rem;
 }
 
-.popup-content {
-  background-color: white;
-  padding: 2rem;
-  border-radius: 24px;
-  max-width: 600px;
-  width: 90%;
-  border: 2px solid #FF69B4;
+.feedback :deep(.lucide) {
+  margin-top: 3px;
+  color: var(--ink-green);
 }
 
-.popup-title {
-  font-size: 2rem;
-  color: var(--color-black);
-  margin-bottom: 1.5rem;
+.working {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   text-align: center;
 }
 
-.popup-image {
-  width: 100%;
-  max-width: 200px;
-  height: auto;
-  border-radius: 16px;
-  margin: 1.5rem auto;
+.prompt {
   display: block;
+  margin-bottom: 0.75rem;
+  font-family: var(--ink-font-display);
+  font-size: 1.35rem;
+  font-weight: 500;
 }
 
-.feedback-text {
-  font-size: 1.2rem;
-  margin-bottom: 1.5rem;
-  line-height: 1.6;
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }
 
-.correct-sentence {
-  font-size: 1.2rem;
-  color: #FF00FF;
-  margin-bottom: 2rem;
+.finish,
+.done {
   text-align: center;
 }
 
-.next-button {
-  background-color: #FFE6F7;
-  color: var(--color-black);
-  border: none;
-  border-radius: 24px;
-  padding: 1rem 3rem;
-  font-size: 1.2rem;
-  cursor: pointer;
-  display: block;
-  margin: 0 auto;
-  transition: background-color 0.3s ease;
-}
-
-.next-button:hover {
-  background-color: #FFD1F1;
-}
-
-.popup-buttons {
-  display: flex;
-  justify-content: center; /* Horizontally center the buttons */
-  gap: 1rem; /* Space between buttons */
-}
-
-.next-button,
-.done-button {
-  display: block;
-  margin: 0 auto; /* Ensure the button is centered */
-}
-
-
-/* Completion Popup */
-.completion-popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.popup-content {
-  background-color: white;
-  padding: 2rem;
-  border-radius: 24px;
-  max-width: 600px;
-  width: 90%;
-  border: 2px solid #FF69B4;
-  text-align: center;
-}
-
-.popup-message {
+.finish h2 {
   font-size: 1.5rem;
-  color: var(--color-black);
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.25rem;
 }
 
-.done-button {
-  background-color: #FF69B4;
-  color: white;
-  border: none;
-  border-radius: 24px;
-  padding: 1rem 2rem;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: background-color 0.3s;
+.finish .v-btn {
+  margin-top: 1.25rem;
 }
 
-.done-button:hover {
-  background-color: #FF1493;
+.done {
+  padding: clamp(1.75rem, 5vw, 3rem);
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .create-story-content {
-    padding: 1rem;
+.done h1 {
+  margin-bottom: 0.75rem;
+  font-size: clamp(1.75rem, 4vw, 2.4rem);
+  color: var(--ink-primary-strong);
+  outline: none;
+}
+
+.done-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ink-pink-soft);
+  color: var(--ink-pink);
+}
+
+.done-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+@media (max-width: 600px) {
+  .sentence-card {
+    grid-template-columns: 1fr;
   }
 
-  .page-title {
-    font-size: 2rem;
+  .sentence-media img,
+  .no-image {
+    min-height: 0;
+    aspect-ratio: 4 / 3;
   }
 
-  .input-prompt {
-    font-size: 1.5rem;
+  .form-actions {
+    flex-direction: column-reverse;
   }
 
-  .sentence-input {
-    font-size: 1.2rem;
-  }
-
-  .start-story-section {
+  .form-actions .v-btn {
     width: 100%;
-    max-width: 600px;
-    margin: 0 auto;
-    text-align: center;
-  }
-
-  .title-input {
-    width: 100%;
-    padding: 1rem;
-    font-size: 1.2rem;
-    border: 2px solid #FF69B4;
-    border-radius: 12px;
-    margin-bottom: 1rem;
-  }
-
-  .start-button {
-    padding: 1rem 2rem;
-    font-size: 1.2rem;
-  }
-
-  .progress-bar {
-    margin-bottom: 1.5rem;
-  }
-
-  .popup-content {
-    padding: 1.5rem;
-  }
-
-  .popup-title {
-    font-size: 1.8rem;
-  }
-
-  .next-button {
-    padding: 1rem 2.5rem;
-  }
-
-  .done-button {
-    padding: 1rem 2rem;
   }
 }
 </style>
