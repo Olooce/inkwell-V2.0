@@ -1,75 +1,52 @@
-import apiClient from './apiClient'
+import apiClient, { getErrorMessage, tokenStorage } from './apiClient'
 import { userStore } from '@/stores/userStore'
 import { createAuthPayload } from '@/utils/auth_utils'
-import { toast } from 'vue3-toastify'
+
+const SESSION_KEYS = ['user-data', 'assessment-state', 'story-drafts', 'chatHistory']
 
 export const authService = {
   async login(email, password) {
+    const normalizedEmail = email.trim()
     try {
-      // Generate authhash
-      const authPayload = await createAuthPayload(email, password)
+      const payload = await createAuthPayload(normalizedEmail, password)
+      const { data } = await apiClient.post('/auth/login', payload)
+      if (!data?.access) throw new Error('No access token received')
 
-      // Send login request
-      const response = await apiClient.post('/auth/login', authPayload)
-      const { access, refresh, user } = response.data
-
-      userStore.setUser(user)
-
-      if (access) {
-        const token = `Bearer ${access}`
-        localStorage.setItem('user-token', token)
-        localStorage.setItem('refresh-token', refresh)
-
-        return response.data
-      }
-      throw new Error('Login failed - no access token received')
+      tokenStorage.set(data.access, data.refresh)
+      userStore.setUser(data.user)
+      return data
     } catch (error) {
-      toast.error(error.message)
-      throw new Error(error.response?.data?.detail || 'Login failed')
+      // The backend answers 401 for both unknown emails and wrong passwords.
+      if (error.response?.status === 401) throw new Error('Incorrect email or password.')
+      throw new Error(getErrorMessage(error, 'Couldn’t sign you in. Please try again.'))
     }
   },
 
-  async register(userData) {
+  async register({ email, password, firstName, lastName }) {
+    const normalizedEmail = email.trim()
     try {
-      const response = await apiClient.post('/auth/register', {
-        email: userData.email,
-        username: userData.email.split('@')[0],
-        password: userData.password,
-        first_name: userData.first_name,
-        last_name: userData.last_name
+      await apiClient.post('/auth/register', {
+        email: normalizedEmail,
+        username: normalizedEmail.split('@')[0],
+        password,
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
       })
-
-      return response.data
     } catch (error) {
-      const errorData = error.response?.data || {}
-      let errorMessage = 'Registration failed'
-
-      if (errorData.email?.length) {
-        errorMessage = errorData.email[0]
-      } else if (errorData.username?.length) {
-        errorMessage = errorData.username[0]
-      } else if (errorData.detail) {
-        errorMessage = errorData.detail
+      if (error.response?.status === 409) {
+        throw new Error('An account with this email already exists. Try logging in instead.')
       }
-
-      throw new Error(errorMessage)
+      throw new Error(getErrorMessage(error, 'Couldn’t create your account. Please try again.'))
     }
   },
 
   logout() {
+    tokenStorage.clear()
+    SESSION_KEYS.forEach((key) => localStorage.removeItem(key))
     userStore.clearUser()
-    localStorage.removeItem('user-token')
-    localStorage.removeItem('refresh-token')
-    localStorage.removeItem('user-data')
-    localStorage.clear()
-  },
-
-  getToken() {
-    return localStorage.getItem('user-token')
   },
 
   isAuthenticated() {
-    const token = this.getToken()
-    return token && token.startsWith('Bearer ')
-  }
+    return Boolean(tokenStorage.getAccess()?.startsWith('Bearer '))
+  },
 }

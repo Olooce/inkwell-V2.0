@@ -1,0 +1,223 @@
+:root {
+  --ink-primary: #4e4feb;
+  --ink-primary-strong: #3a3bc8;
+  --ink-primary-soft: #ececff;
+  --ink-sky: #0a7ad6;
+  --ink-sky-soft: #e3f2ff;
+  --ink-pink: #c21f85;
+  --ink-pink-soft: #fde7f4;
+  --ink-orange-soft: #fff1df;
+  --ink-green: #1c7c43;
+  --ink-green-soft: #e3f6ea;
+  --ink-red: #c62828;
+  --ink-red-soft: #fdecec;
+
+  --ink-text: #1d1d35;
+  --ink-text-muted: #55576d;
+  --ink-border: #dcdcea;
+  --ink-surface: #ffffff;
+  --ink-bg: #f7f7fc;
+
+  --ink-radius-sm: 8px;
+  --ink-radius: 14px;
+  --ink-radius-lg: 22px;
+  --ink-shadow: 0 1px 2px rgba(29, 29, 53, 0.06), 0 4px 16px rgba(29, 29, 53, 0.06);
+  --ink-shadow-lg: 0 8px 32px rgba(29, 29, 53, 0.14);
+
+  --ink-font-display: 'Fredoka', 'Nunito', system-ui, sans-serif;
+  --ink-font-body: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --ink-header-height: 68px;
+  --ink-tabbar-height: 64px;
+
+  --color-dark-blue: var(--ink-primary);
+  --color-light-blue: var(--ink-sky);
+  --color-light-blue-18: var(--ink-sky-soft);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--ink-font-body);
+  color: var(--ink-text);
+  background: var(--ink-bg);
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--ink-font-display);
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+img {
+  max-width: 100%;
+}
+
+/* Lucide icons (@lucide/vue): keep their size in flex rows and sit on the text line. */
+.lucide {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.v-application {
+  font-family: var(--ink-font-body) !important;
+  background: var(--ink-bg) !important;
+  color: var(--ink-text) !important;
+}
+
+.v-btn {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-family: var(--ink-font-display) !important;
+  font-weight: 500 !important;
+}
+
+/* Clearly visible keyboard focus everywhere. */
+:focus-visible {
+  outline: 3px solid var(--ink-sky);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 2000;
+  padding: 0.75rem 1rem;
+  background: var(--ink-primary);
+  color: #fff;
+  border-radius: var(--ink-radius-sm);
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* Page scaffolding used by signed-in screens. */
+.page {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.page--narrow {
+  max-width: 760px;
+}
+
+.page-header {
+  margin-bottom: 1.75rem;
+}
+
+.page-header h1 {
+  font-size: clamp(1.75rem, 4vw, 2.4rem);
+  color: var(--ink-text);
+}
+
+.page-header p {
+  margin-top: 0.4rem;
+  color: var(--ink-text-muted);
+  font-size: 1.05rem;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  color: var(--ink-primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.card {
+  background: var(--ink-surface);
+  border: 1px solid var(--ink-border);
+  border-radius: var(--ink-radius);
+  box-shadow: var(--ink-shadow);
+}
+
+/* Empty / error / loading states share one look. */
+.state-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  background: var(--ink-surface);
+  border: 1px dashed var(--ink-border);
+  border-radius: var(--ink-radius);
+}
+
+.state-panel h2 {
+  font-size: 1.35rem;
+}
+
+.state-panel p {
+  max-width: 46ch;
+  color: var(--ink-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body,
+  .v-application {
+    background: #fff !important;
+  }
+
+  .v-main {
+    padding: 0 !important;
+  }
+}

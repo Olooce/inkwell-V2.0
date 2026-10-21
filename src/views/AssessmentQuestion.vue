@@ -1,319 +1,308 @@
-dd<template>
-  <div class="assessment-layout">
-    <Navigation :user-name="userName" />
-
-    <main class="assessment-content">
-      <div v-if="currentQuestion" class="question-container">
-        <div class="progress-indicator">
-          Question {{ progress.current }} of {{ progress.total }}
-        </div>
-
-        <div v-if="loading" class="loading-container">
-          <div class="spinner"></div>
-          <p>Checking your answer...</p>
-        </div>
-
-        <div v-else>
-          <!-- Masked Word Question Type -->
-          <template v-if="currentQuestion.question_type === 'masked'">
-            <h2 class="instruction">
-              Fill in the blank with the most appropriate word:
-            </h2>
-            <div class="sentence-container">
-              <div class="sentence">
-                {{ formatMaskedSentence(currentQuestion.masked_sentence) }}
-              </div>
-              <input
-                v-model="userAnswer"
-                class="answer-input"
-                placeholder="Type your answer..."
-                @keyup.enter="submitAnswer"
-                :disabled="loading"
-              />
-            </div>
-          </template>
-
-          <!-- Error Correction Question Type -->
-          <template v-else>
-            <h2 class="instruction">
-              Correct the error in this sentence:
-            </h2>
-            <div class="sentence-container">
-              <div class="sentence error">
-                {{ currentQuestion.error_sentence }}
-              </div>
-              <input
-                v-model="userAnswer"
-                class="answer-input"
-                placeholder="Type the corrected sentence..."
-                @keyup.enter="submitAnswer"
-                :disabled="loading"
-              />
-            </div>
-          </template>
-
-          <button
-            class="submit-btn"
-            @click="submitAnswer"
-            :disabled="!userAnswer || loading"
-          >
-            Submit
-          </button>
-        </div>
+<template>
+  <div class="page page--narrow">
+    <!-- Finished -->
+    <section v-if="finished" class="card panel summary" aria-labelledby="summary-title">
+      <div class="summary-icon" aria-hidden="true"><Sparkles :size="36" /></div>
+      <h1 id="summary-title" ref="summaryHeading" tabindex="-1">Quiz complete - great work!</h1>
+      <p class="summary-score">
+        You got <strong>{{ correctCount }} of {{ results.length }}</strong> right.
+      </p>
+      <p class="muted">
+        Now for the fun part: write a story and watch it turn into a comic.
+      </p>
+      <div class="summary-actions">
+        <v-btn color="primary" size="x-large" to="/create-story">Write my first story</v-btn>
+        <v-btn variant="outlined" size="x-large" to="/dashboard">Go to my home page</v-btn>
       </div>
+    </section>
 
-      <!-- Feedback Modal -->
-      <v-dialog v-model="showFeedback" max-width="500px">
-        <v-card>
-          <v-card-title class="feedback-title" :class="{'text-success': feedback.isCorrect}">
-            {{ feedback.isCorrect ? 'Correct!' : 'Keep Learning!' }}
-          </v-card-title>
-          <v-card-text class="feedback-text">
-            {{ feedback.message }}
-          </v-card-text>
-          <v-card-actions>
-            <v-btn
-              block
-              color="primary"
-              @click="handleContinue"
-              :loading="loading"
-            >
-              {{ isLastQuestion ? 'Complete Assessment' : 'Next Question' }}
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
+    <!-- Question -->
+    <section v-else-if="question" class="card panel" aria-labelledby="question-title">
+      <div class="progress-row">
+        <span class="step">Question {{ progress.current }} of {{ progress.total }}</span>
+        <span v-if="assessmentStore.state.topic.value" class="topic">
+          {{ assessmentStore.state.topic.value }}
+        </span>
+      </div>
+      <v-progress-linear
+        :model-value="(answeredCount / progress.total) * 100"
+        color="primary"
+        bg-color="primary"
+        height="8"
+        rounded
+        class="mb-8"
+        :aria-label="`${answeredCount} of ${progress.total} questions answered`"
+      />
 
-      <!-- Completion Modal -->
-      <v-dialog v-model="showCompletionModal" max-width="500px">
-        <v-card>
-          <v-card-title class="feedback-title text-primary">
-            Assessment Complete!
-          </v-card-title>
-          <v-card-text class="feedback-text">
-            You have completed your assessment. You can now proceed to the dashboard to create a story.
-          </v-card-text>
-          <v-card-actions>
-            <v-btn
-              block
-              color="success"
-              @click="redirectToDashboard"
-            >
-              Go to Dashboard
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
+      <h1 id="question-title" ref="questionHeading" class="instruction" tabindex="-1">
+        {{ isMasked ? 'Fill in the missing word' : 'Fix the mistake in this sentence' }}
+      </h1>
 
-    </main>
+      <p class="sentence" :class="{ 'sentence--error': !isMasked }">
+        <template v-if="isMasked">
+          <span v-for="(part, i) in maskedParts" :key="i">
+            {{ part }}<span v-if="i < maskedParts.length - 1" class="blank">{{ answer || '' }}</span>
+          </span>
+        </template>
+        <template v-else>{{ question.error_sentence }}</template>
+      </p>
+
+      <form v-if="!result" class="answer-form" @submit.prevent="submit">
+        <v-text-field
+          ref="answerInput"
+          v-model="answer"
+          :label="isMasked ? 'Missing word' : 'Corrected sentence'"
+          :placeholder="isMasked ? 'Type one word' : 'Type the whole sentence, corrected'"
+          :disabled="checking"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          hide-details
+          autofocus
+        />
+        <v-btn
+          type="submit"
+          color="primary"
+          size="x-large"
+          :loading="checking"
+          :disabled="!answer.trim()"
+        >
+          Check answer
+        </v-btn>
+        <p v-if="checking" class="muted checking" role="status">Checking your answer…</p>
+      </form>
+
+      <div
+        v-else
+        class="feedback"
+        :class="result.isCorrect ? 'feedback--correct' : 'feedback--wrong'"
+        role="status"
+      >
+        <h2>
+          <component :is="result.isCorrect ? CircleCheck : CircleAlert" :size="24" />
+          {{ result.isCorrect ? 'Correct!' : 'Not quite' }}
+        </h2>
+        <p v-if="result.feedback" class="feedback-text">{{ result.feedback }}</p>
+        <p class="your-answer">Your answer: “{{ result.answer }}”</p>
+        <v-btn ref="nextButton" color="primary" size="x-large" class="mt-4" @click="next">
+          {{ isLast ? 'See my results' : 'Next question' }}
+          <ArrowRight :size="20" class="ml-2" />
+        </v-btn>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import Navigation from '@/components/Navigation.vue'
+import { toast } from 'vue3-toastify'
+import { ArrowRight, CircleAlert, CircleCheck, Sparkles } from '@lucide/vue'
 import { assessmentStore } from '@/stores/assessmentStore'
 import { userStore } from '@/stores/userStore'
-import { toast } from 'vue3-toastify'
+import { getErrorMessage } from '@/services/apiClient'
 
 const router = useRouter()
-const userName = computed(() => {
-  return userStore.state.firstName.value ||
-    userStore.state.email.value?.split('@')[0] ||
-    'Guest'
-})
 
-const userAnswer = ref('')
-const loading = ref(false)
-const showFeedback = ref(false)
-const showCompletionModal = ref(false)
-const feedback = ref({ isCorrect: false, message: '' })
+const answer = ref('')
+const checking = ref(false)
+const finished = ref(false)
+const results = ref([])
+const questionHeading = ref(null)
+const summaryHeading = ref(null)
+const nextButton = ref(null)
 
-const currentQuestion = computed(() => assessmentStore.getCurrentQuestion())
+const question = computed(() => assessmentStore.getCurrentQuestion())
 const progress = computed(() => assessmentStore.getProgress())
-const isLastQuestion = computed(() =>
-  progress.value.current === progress.value.total
+const isLast = computed(() => progress.value.current === progress.value.total)
+const isMasked = computed(() => question.value?.question_type === 'masked')
+const maskedParts = computed(() => (question.value?.masked_sentence || '').split('[MASK]'))
+const answeredCount = computed(() => assessmentStore.state.answers.value.length)
+const correctCount = computed(() => results.value.filter((r) => r.isCorrect).length)
+
+
+const result = computed(() =>
+  assessmentStore.state.answers.value.find((a) => a.questionId === question.value?.id),
 )
 
-const formatMaskedSentence = (sentence) => {
-  return sentence?.replace('[MASK]', '_____') || ''
-}
+onMounted(() => {
+  if (!question.value) router.replace('/assessment')
+})
 
-const submitAnswer = async () => {
-  if (!userAnswer.value || loading.value) return
-
-  loading.value = true
+const submit = async () => {
+  if (!answer.value.trim() || checking.value) return
+  checking.value = true
   try {
-    const result = await assessmentStore.submitAnswer(userAnswer.value)
-    feedback.value = {
-      isCorrect: result.isCorrect,
-      message: result.feedback
-    }
-
-      showFeedback.value = true
-
-  } catch (error) {
-    // If the error indicates that the question is already answered
-    if (error.response && error.response.data.error === 'Question already answered') {
-      // Directly continue to the next question or completion
-      handleContinue()
-    } else {
-      toast.error(error.message)
-    }
+    await assessmentStore.submitAnswer(answer.value.trim())
+    await nextTick()
+    nextButton.value?.$el?.focus()
+  } catch (err) {
+    toast.error(getErrorMessage(err, 'We couldn’t check that answer. Please try again.'))
   } finally {
-    loading.value = false
+    checking.value = false
   }
 }
 
-const handleContinue = () => {
-  showFeedback.value = false
-  userAnswer.value = ''
-
-  if (isLastQuestion.value) {
-    handleCompletion()
-  } else {
-    assessmentStore.nextQuestion()
+const next = async () => {
+  answer.value = ''
+  if (assessmentStore.nextQuestion()) {
+    await nextTick()
+    questionHeading.value?.focus()
+    return
   }
-}
 
-const handleCompletion = () => {
-  userStore.state.initial_assessment_completed.value = true
-
-  const userData = JSON.parse(localStorage.getItem('user-data') || '{}')
-  userData.initial_assessment_completed = true
-  localStorage.setItem('user-data', JSON.stringify(userData))
-
+  // Last question answered: the backend has now marked the quiz as completed.
+  results.value = assessmentStore.state.answers.value
+  userStore.markAssessmentCompleted()
   assessmentStore.resetAssessment()
-
-  showCompletionModal.value = true
-}
-
-const redirectToDashboard = () => {
-  showCompletionModal.value = false
-  router.push('/dashboard')
+  finished.value = true
+  await nextTick()
+  summaryHeading.value?.focus()
 }
 </script>
 
-
 <style scoped>
-.assessment-layout {
-  min-height: 100vh;
-  background-color: white;
+.panel {
+  padding: clamp(1.5rem, 5vw, 2.75rem);
 }
 
-.assessment-content {
-  padding: 2rem;
-  max-width: 800px;
-  margin: 80px auto 0;
+.progress-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+  font-weight: 700;
 }
 
-.question-container {
-  background: white;
-  border-radius: 24px;
-  padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.step {
+  color: var(--ink-primary-strong);
 }
 
-.progress-indicator {
-  text-align: center;
-  margin-bottom: 2rem;
-  color: #666;
-  font-family: 'Fredoka', sans-serif;
+.topic {
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  background: var(--ink-sky-soft);
+  color: var(--ink-sky);
+  font-size: 0.9rem;
 }
 
 .instruction {
-  font-family: 'Fredoka', sans-serif;
-  font-size: 1.5rem;
-  margin-bottom: 2rem;
-  text-align: center;
-}
-
-.sentence-container {
-  margin-bottom: 2rem;
+  font-size: clamp(1.4rem, 3.5vw, 1.8rem);
+  margin-bottom: 1.25rem;
+  outline: none;
 }
 
 .sentence {
-  font-size: 1.2rem;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
-  background: #f5f5f5;
-  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: var(--ink-radius);
+  background: var(--ink-primary-soft);
+  font-size: clamp(1.2rem, 3vw, 1.45rem);
+  line-height: 1.7;
+}
+
+.sentence--error {
+  background: var(--ink-orange-soft);
+}
+
+.blank {
+  display: inline-block;
+  min-width: 5ch;
+  margin: 0 0.25rem;
+  padding: 0 0.4rem;
+  border-bottom: 3px solid var(--ink-primary);
+  color: var(--ink-primary-strong);
+  font-weight: 700;
   text-align: center;
 }
 
-.answer-input {
-  width: 100%;
-  padding: 1rem;
-  font-size: 1.1rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  outline: none;
-  transition: border-color 0.2s;
+.answer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.submit-btn {
-  width: 100%;
-  padding: 1rem;
-  font-size: 1.2rem;
-  color: white;
-  background: var(--color-light-blue);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-family: 'Fredoka', sans-serif;
-  transition: opacity 0.2s;
-}
-
-.submit-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.feedback-title {
-  font-family: 'Fredoka', sans-serif;
+.checking {
   text-align: center;
+}
+
+.muted {
+  color: var(--ink-text-muted);
+}
+
+.feedback {
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--ink-radius);
+  border: 2px solid;
+}
+
+.feedback h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.feedback--correct {
+  background: var(--ink-green-soft);
+  border-color: var(--ink-green);
+}
+
+.feedback--correct h2 {
+  color: var(--ink-green);
+}
+
+.feedback--wrong {
+  background: var(--ink-orange-soft);
+  border-color: #c76a00;
+}
+
+.feedback--wrong h2 {
+  color: #8a4a00;
 }
 
 .feedback-text {
-  text-align: center;
-  padding: 1rem;
-  font-size: 1.1rem;
-  line-height: 1.6;
+  font-size: 1.05rem;
 }
 
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 200px; /* Adjust based on the container size */
+.your-answer {
+  margin-top: 0.5rem;
+  color: var(--ink-text-muted);
+}
+
+.summary {
   text-align: center;
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid transparent;
-  border-top: 4px solid var(--color-light-blue);
+.summary h1 {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  color: var(--ink-primary-strong);
+  outline: none;
+}
+
+.summary-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1.25rem;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  background: var(--ink-primary-soft);
+  color: var(--ink-primary);
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.summary-score {
+  margin: 1rem 0 0.5rem;
+  font-size: 1.3rem;
 }
 
-.loading-container p {
-  margin-top: 1rem;
-  font-size: 1.2rem;
-  color: var(--color-light-blue);
-  font-family: 'Fredoka', sans-serif;
+.summary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
 }
 </style>

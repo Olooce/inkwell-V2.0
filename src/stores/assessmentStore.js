@@ -1,43 +1,48 @@
 import { ref } from 'vue'
 import apiClient from '@/services/apiClient'
-import { toast } from 'vue3-toastify'
+
+const STORAGE_KEY = 'assessment-state'
 
 const state = {
   currentSession: ref(null),
+  topic: ref(''),
   questions: ref([]),
   currentQuestionIndex: ref(0),
-  answers: ref([])
+  answers: ref([]),
+}
+
+const persist = () => {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      currentSession: state.currentSession.value,
+      topic: state.topic.value,
+      questions: state.questions.value,
+      currentQuestionIndex: state.currentQuestionIndex.value,
+      answers: state.answers.value,
+    }),
+  )
 }
 
 export const assessmentStore = {
   state,
 
-  // Load persisted data from localStorage
   loadPersistedData() {
-    const persistedState = localStorage.getItem('assessment-state')
-    if (persistedState) {
-      try {
-        const parsedState = JSON.parse(persistedState)
-        state.currentSession.value = parsedState.currentSession
-        state.questions.value = parsedState.questions
-        state.currentQuestionIndex.value = parsedState.currentQuestionIndex
-        state.answers.value = parsedState.answers
-      } catch (error) {
-        toast.error(error.message)
-        this.resetAssessment()  // If error occurs, reset to initial state
-      }
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY))
+      if (!saved?.currentSession) return
+      state.currentSession.value = saved.currentSession
+      state.topic.value = saved.topic || ''
+      state.questions.value = saved.questions || []
+      state.currentQuestionIndex.value = saved.currentQuestionIndex || 0
+      state.answers.value = saved.answers || []
+    } catch {
+      this.resetAssessment()
     }
   },
 
-  // Save state to localStorage
-  saveStateToLocalStorage() {
-    const stateToPersist = {
-      currentSession: state.currentSession.value,
-      questions: state.questions.value,
-      currentQuestionIndex: state.currentQuestionIndex.value,
-      answers: state.answers.value
-    }
-    localStorage.setItem('assessment-state', JSON.stringify(stateToPersist))
+  hasSessionInProgress() {
+    return Boolean(state.currentSession.value && state.questions.value.length)
   },
 
   getCurrentQuestion() {
@@ -47,75 +52,56 @@ export const assessmentStore = {
   getProgress() {
     return {
       current: state.currentQuestionIndex.value + 1,
-      total: state.questions.value.length
+      total: state.questions.value.length,
     }
   },
 
   async startAssessment() {
-    try {
-      const response = await apiClient.post('/assessments/start')
-      state.currentSession.value = response.data.session_id
-      state.questions.value = response.data.questions
-      state.currentQuestionIndex.value = 0
-      state.answers.value = []
-
-      // Save the state after starting assessment
-      this.saveStateToLocalStorage()
-
-      return response.data
-    } catch (error) {
-      toast.error(error.message)
+    const { data } = await apiClient.post('/assessments/start')
+    if (!data.questions?.length) {
+      const error = new Error('No questions are available right now. Please try again later.')
+      error.isUserFacing = true
       throw error
     }
+    state.currentSession.value = data.session_id
+    state.topic.value = data.topic
+    state.questions.value = data.questions
+    state.currentQuestionIndex.value = 0
+    state.answers.value = []
+    persist()
+    return data
   },
 
+  /** Submits an answer for the current question. Returns `{ isCorrect, feedback }`. */
+  async submitAnswer(answer) {
+    const question = this.getCurrentQuestion()
+    if (!question) throw new Error('No current question')
 
-async submitAnswer(answer) {
-  try {
-    const currentQuestion = this.getCurrentQuestion()
-    if (!currentQuestion) throw new Error('No current question')
+    const { data } = await apiClient.post('/assessments/submit', {
+      session_id: state.currentSession.value,
+      question_id: question.id,
+      answer,
+    })
 
-    const payload = {
-      session_id: state.currentSession.value,  // Extract .value
-      question_id: currentQuestion.id,
-      answer: answer
-    }
-
-    const response = await apiClient.post('/assessments/submit', payload)
-
-    state.answers.value = [...state.answers.value, {
-      questionId: currentQuestion.id,
-      answer: answer,
-      isCorrect: response.data.isCorrect,
-      feedback: response.data.feedback
-    }]
-
-    this.saveStateToLocalStorage()  // Persist state
-
-    return response.data
-  } catch (error) {
-    toast.error(error.message)
-    throw error
-  }
-},
+    const result = { isCorrect: data.is_correct === true, feedback: data.feedback }
+    state.answers.value = [...state.answers.value, { questionId: question.id, answer, ...result }]
+    persist()
+    return result
+  },
 
   nextQuestion() {
-    if (state.currentQuestionIndex.value < state.questions.value.length - 1) {
-      state.currentQuestionIndex.value++
-      // Save the state after moving to the next question
-      this.saveStateToLocalStorage()
-      return true
-    }
-    return false
+    if (state.currentQuestionIndex.value >= state.questions.value.length - 1) return false
+    state.currentQuestionIndex.value++
+    persist()
+    return true
   },
 
   resetAssessment() {
     state.currentSession.value = null
+    state.topic.value = ''
     state.questions.value = []
     state.currentQuestionIndex.value = 0
     state.answers.value = []
-
-    // Clear state from localStorage
-    localStorage.removeItem('assessment-state')
-  }
+    localStorage.removeItem(STORAGE_KEY)
+  },
 }

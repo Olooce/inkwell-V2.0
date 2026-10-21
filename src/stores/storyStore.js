@@ -1,147 +1,65 @@
-import apiClient from '../services/apiClient.js'
-import { toast } from 'vue3-toastify'
+import apiClient from '@/services/apiClient'
+
+export const MAX_SENTENCES = 5
+
+const DRAFTS_KEY = 'story-drafts'
+
+const readDrafts = () => {
+  try {
+    return JSON.parse(localStorage.getItem(DRAFTS_KEY)) || {}
+  } catch {
+    return {}
+  }
+}
+
+const writeDrafts = (drafts) => localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts))
 
 export const storyStore = {
-  state: {
-    currentStory: null,
-    sentences: [],
-    storyStatus: 'not_started', // 'not_started', 'in_progress', 'completed'
-    currentSentenceCount: 0,
-    error: null,
-  },
-
-  // Load state from localStorage (if available)
-  loadStateFromLocalStorage() {
-    const storedState = localStorage.getItem('story-state')
-    if (storedState) {
-      try {
-        const parsedState = JSON.parse(storedState)
-        this.state = { ...this.state, ...parsedState }
-      } catch (error) {
-        toast.error(error.message)
+  async getActiveStory() {
+    try {
+      const { data } = await apiClient.get('/stories/progress')
+      if (data?.story_status !== 'in_progress') return null
+      return {
+        id: data.story_id,
+        title: data.title,
+        sentenceCount: data.current_sentence_count,
+        maxSentences: data.current_sentence_count + data.max_sentences,
       }
+    } catch (error) {
+      if (error.response?.status === 500) return null
+      throw error
     }
   },
 
-  // Save state to localStorage
-  saveStateToLocalStorage() {
-    localStorage.setItem('story-state', JSON.stringify(this.state))
-  },
-
-  // Method to start the story
+  /** Starts a story. If one is unfinished the backend returns that one instead (`resumed: true`). */
   async startStory(title) {
-    try {
-      const response = await apiClient.post('/stories/start_story', { title })
-      this.state.currentStory = { id: response.data.story_id, title, guidance: response.data.guidance }
-      this.state.storyStatus = 'in_progress'
-      this.state.sentences = []
-      this.state.currentSentenceCount = 0
-      this.state.error = null
-
-      // Persist the updated state
-      this.saveStateToLocalStorage()
-
-      return response.data
-    } catch (error) {
-      this.state.error = error.message
-      toast.error(error.message)
-      throw new Error(error.response?.data?.error || 'Failed to start story')
+    const { status, data } = await apiClient.post('/stories/start_story', { title })
+    const resumed = status === 200
+    return {
+      resumed,
+      id: data.story_id,
+      title: resumed ? data.title : title,
+      sentenceCount: data.current_sentence_count,
+      maxSentences: resumed ? data.current_sentence_count + data.max_sentences : data.max_sentences,
     }
   },
 
-  // Method to add a sentence to the story
-  async addSentence(sentence) {
-    try {
-      if (!this.state.currentStory) throw new Error('No current story found')
-
-      const response = await apiClient.post(`/stories/${this.state.currentStory.id}/add_sentence`, {
-        sentence
-      })
-
-      this.state.sentences.push(response.data.sentence)
-      this.state.currentSentenceCount = this.state.sentences.length
-      this.state.error = null
-
-      // Persist the updated state
-      this.saveStateToLocalStorage()
-
-      return response.data
-    } catch (error) {
-      this.state.error = error.message
-      toast.error(error.message)
-      throw new Error(error.response?.data?.error || 'Failed to add sentence')
-    }
+  async addSentence(storyId, sentence) {
+    const { data } = await apiClient.post(`/stories/${storyId}/add_sentence`, { sentence })
+    const drafts = readDrafts()
+    drafts[storyId] = [...(drafts[storyId] || []), data.sentence]
+    writeDrafts(drafts)
+    return data.sentence
   },
 
-  // Method to complete the story
-  async completeStory() {
-    try {
-      if (!this.state.currentStory) throw new Error('No current story found')
-
-      const response = await apiClient.post(`/stories/${this.state.currentStory.id}/complete_story`)
-
-      this.state.storyStatus = 'completed'
-      this.state.error = null
-
-      // Persist the updated state
-      this.saveStateToLocalStorage()
-
-      return response.data
-    } catch (error) {
-      this.state.error = error.message
-      toast.error(error.message)
-      throw new Error(error.response?.data?.error || 'Failed to complete story')
-    }
+  async completeStory(storyId) {
+    await apiClient.post(`/stories/${storyId}/complete_story`)
+    const drafts = readDrafts()
+    delete drafts[storyId]
+    writeDrafts(drafts)
   },
 
-  // Method to fetch the progress of the story
-  async getProgress() {
-    try {
-      const response = await apiClient.get('/stories/progress')
-      return response.data
-    } catch (error) {
-      this.state.error = error.message
-      toast.error(error.message)
-      throw new Error(error.response?.data?.error || 'Failed to get progress')
-    }
+  getSavedSentences(storyId) {
+    return readDrafts()[storyId] || []
   },
-
-  // Method to get all the stories
-  async getAllStories() {
-    try {
-      const response = await apiClient.get('/stories')
-      return response.data
-    } catch (error) {
-      this.state.error = error.message
-      toast.error(error.message)
-      throw new Error(error.response?.data?.error || 'Failed to get stories')
-    }
-  },
-
-  // Method to clear the story state
-  clearStory() {
-    this.state.currentStory = null
-    this.state.sentences = []
-    this.state.storyStatus = 'not_started'
-    this.state.currentSentenceCount = 0
-    this.state.error = null
-
-    // Clear the state from localStorage
-    localStorage.removeItem('story-state')
-  },
-
-  // New method: Set the current story (when navigating to the Writing Tip view)
-  setCurrentStory(story) {
-    this.state.currentStory = story
-    this.state.sentences = []
-    this.state.storyStatus = 'not_started'
-    this.state.currentSentenceCount = 0
-    this.state.error = null
-    this.saveStateToLocalStorage()
-  },
-
-  // New method: Get the current story
-  getCurrentStory() {
-    return this.state.currentStory
-  }
 }
